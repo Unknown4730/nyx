@@ -1,0 +1,300 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --nyx-violet: 124 92 255;
+    --nyx-cyan: 34 211 238;
+  }
+
+  * {
+    border-color: theme('colors.hairline');
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-void text-soft font-sans antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'cv02', 'cv03', 'ss01';
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-white tracking-[-0.015em];
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: rgb(var(--nyx-violet) / 0.35);
+  }
+
+  /* Thin, unobtrusive scrollbars so the panels feel part of the surface. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.hairline') transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: theme('colors.hairline');
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--nyx-violet) / 0.55);
+    background-clip: content-box;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--nyx-cyan) / 0.8);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .nyx-panel {
+    @apply rounded-card border border-hairline bg-surface/95 shadow-panel;
+  }
+
+  .nyx-inset {
+    @apply rounded-xl border border-hairline/70 bg-ink/70;
+  }
+
+  .nyx-eyebrow {
+    @apply text-2xs font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+
+  .nyx-hairline-top {
+    @apply relative;
+  }
+
+  .nyx-hairline-top::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: theme('backgroundImage.nyx-line');
+    opacity: 0.65;
+  }
+
+  .nyx-skeleton {
+    @apply relative overflow-hidden rounded-lg bg-raised/70;
+  }
+
+  .nyx-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    animation: nyx-skeleton-sweep 1.6s ease-in-out infinite;
+  }
+
+  @keyframes nyx-skeleton-sweep {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(220%);
+    }
+  }
+
+  .nyx-metric {
+    @apply font-mono text-2xl font-medium tabular-nums text-white;
+  }
+}
+
+/* ---------------------------------------------------------------- React Flow --
+   The canvas is the hero of the app: the default light chrome is replaced with
+   the NYX surface so nodes read as cards floating on the midnight backdrop.    */
+.react-flow {
+  background: transparent;
+}
+
+.react-flow__attribution {
+  display: none;
+}
+
+.react-flow__handle {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: theme('colors.hairline');
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__edge-path {
+  stroke: rgba(160, 174, 205, 0.42);
+  stroke-width: 1.35;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke: rgb(var(--nyx-cyan) / 0.75);
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge.nyx-edge-active .react-flow__edge-path {
+  stroke: rgb(var(--nyx-violet) / 0.95);
+  stroke-width: 1.9;
+}
+
+.react-flow__edge.nyx-edge-dimmed .react-flow__edge-path {
+  stroke: rgba(160, 174, 205, 0.14);
+}
+
+.react-flow__edge-text {
+  fill: theme('colors.muted');
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.react-flow__edge-textbg {
+  fill: theme('colors.ink');
+}
+
+.react-flow__controls {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid theme('colors.hairline');
+  box-shadow: theme('boxShadow.panel');
+}
+
+.react-flow__controls-button {
+  background: theme('colors.surface');
+  border-bottom: 1px solid theme('colors.hairline');
+  fill: theme('colors.muted');
+  width: 26px;
+  height: 26px;
+}
+
+.react-flow__controls-button:hover {
+  background: theme('colors.raised');
+  fill: theme('colors.white');
+}
+
+.react-flow__minimap {
+  background: theme('colors.ink');
+  border: 1px solid theme('colors.hairline');
+  border-radius: 12px;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(5, 6, 11, 0.72);
+}
+
+.react-flow__node {
+  font-family: inherit;
+}
+
+.nyx-node-selected {
+  box-shadow: theme('boxShadow.glow-violet');
+}
+
+/* ------------------------------------------------------------------- printing --
+   "Save as PDF" is a browser print of the report view, so the print stylesheet
+   has to turn the dark UI into a clean document rather than a negative.        */
+@page {
+  size: A4 portrait;
+  margin: 14mm 12mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #10131c !important;
+  }
+
+  .nyx-no-print {
+    display: none !important;
+  }
+
+  .nyx-print-sheet {
+    background: #ffffff !important;
+    color: #10131c !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .nyx-print-sheet * {
+    background: transparent !important;
+    color: #10131c !important;
+    border-color: #d5d9e4 !important;
+    box-shadow: none !important;
+  }
+
+  .nyx-print-sheet h1 {
+    font-size: 22pt;
+  }
+
+  .nyx-print-sheet h2 {
+    font-size: 13pt;
+    margin-top: 18pt;
+    break-after: avoid;
+  }
+
+  .nyx-print-sheet h3 {
+    font-size: 11pt;
+    break-after: avoid;
+  }
+
+  .nyx-print-sheet table {
+    font-size: 8.5pt;
+    width: 100%;
+  }
+
+  .nyx-print-sheet th {
+    text-align: left;
+    border-bottom: 0.6pt solid #9aa2b5;
+  }
+
+  .nyx-print-sheet td,
+  .nyx-print-sheet th {
+    padding: 3pt 4pt;
+  }
+
+  .nyx-print-sheet tr,
+  .nyx-print-sheet li {
+    break-inside: avoid;
+  }
+
+  .nyx-print-page-break {
+    break-before: page;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
