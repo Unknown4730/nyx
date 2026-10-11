@@ -1,6 +1,20 @@
-"""NYX serverless suitability rule pack.
+"""NYX serverless suitability rule pack — the single source of truth for the rules.
 
-Methodology (also documented in docs/PROJECT_REPORT.md):
+This module owns, and is the *only* place that owns:
+
+* the workload factor table (`WORKLOAD_FACTORS`) and the component factor weights
+  (`COMPONENT_FACTOR_WEIGHTS`),
+* the score formula and the band thresholds (`BANDS`),
+* the evidence-quality gates (`MISSING_WEIGHT_LIMIT`,
+  `COMPONENT_MISSING_WEIGHT_LIMIT`),
+* the rule-pack version (`RULE_PACK_VERSION`).
+
+It is a pure rule pack: it imports nothing but the schemas, performs no I/O, no
+network call and no model call, and holds no mutable state.  Composition into a
+`SuitabilityReport` happens in exactly one place — the authoritative service
+`app.services.serverless_suitability` — and nowhere else in the repository.
+
+Methodology (full write-up: docs/backend/SUITABILITY_ENGINE.md):
 
     contribution_i = weight_i * impact_i                 impact_i in [-1, +1]
     score          = 100 * (0.5 + 0.5 * sum(contribution_i))
@@ -8,7 +22,8 @@ Methodology (also documented in docs/PROJECT_REPORT.md):
 
 A workload perfect on every factor reaches 100; a perfectly unsuitable one
 reaches 0; a completely unknown one lands at 50 and is flagged *provisional*
-rather than being presented as a verdict.  No score is ever random.
+rather than being presented as a verdict.  No score is ever random, and no value
+is model-generated: every impact comes from the tables in this file.
 
 Weights are fixed by this rule pack version so results are reproducible and
 unit-testable.  They are engineering judgement, not an industry benchmark.
@@ -33,8 +48,33 @@ from app.schemas.common import (
 )
 from app.schemas.requirements import ApplicationRequirements, RequirementSignals
 
+#: The single source of truth for the rule-pack version.  Every other module
+#: (pipeline, meta endpoint, suitability service) imports this name; nothing else
+#: in the repository may restate the literal.
 RULE_PACK_VERSION = "2026.10"
+
+#: Workload-level evidence gate.  When factors carrying at least this much of the
+#: total weight have no supporting evidence, the workload verdict is downgraded to
+#: FURTHER_ASSESSMENT and the blended number is reported as provisional instead of
+#: as a conclusion.  0.30 of the 12 workload factors is roughly the traffic,
+#: duration and state evidence together — losing all three makes any band verdict
+#: indefensible.
 MISSING_WEIGHT_LIMIT = 0.30
+
+#: Component-level evidence gate, applied by `component_score_and_outcome`.
+#:
+#: NOTE FOR REVIEWERS — this gate is currently unreachable.  A component is scored
+#: on the six `COMPONENT_FACTOR_WEIGHTS` factors, and of those only `duration` can
+#: ever be recorded as `missing` (see `evaluate_component`); its weight is 0.26.
+#: The maximum component-level missing weight is therefore 0.26 < 0.34, so this
+#: branch never fires and a component verdict is always taken from `band_for`.
+#: The value is preserved verbatim from the pre-consolidation implementation
+#: because lowering it to something reachable would change published component
+#: outcomes, `ComponentSuitability.provisional`, and — through the component
+#: targets — `recommended_pattern`.  That is a behaviour change requiring an
+#: explicit project-owner decision, not a refactor.  See
+#: `docs/backend/SUITABILITY_ENGINE.md` → "Known limitations".
+COMPONENT_MISSING_WEIGHT_LIMIT = 0.34
 
 WEIGHT_RATIONALE = (
     "Weights prioritise the factors with the largest documented impact on serverless platform limits: "
@@ -788,8 +828,13 @@ def evaluate_component(
 
 
 def component_score_and_outcome(factors: list[FactorResult]) -> tuple[float, SuitabilityOutcome, list[str]]:
+    """Score one component and pick its band.
+
+    The evidence gate here is `COMPONENT_MISSING_WEIGHT_LIMIT`; read the note on
+    that constant before changing it — it is deliberately not the workload gate.
+    """
     score, missing_weight, missing_ids = score_from_factors(factors)
-    if missing_weight >= 0.34:
+    if missing_weight >= COMPONENT_MISSING_WEIGHT_LIMIT:
         return score, SuitabilityOutcome.FURTHER_ASSESSMENT, missing_ids
     return score, band_for(score), missing_ids
 

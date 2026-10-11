@@ -18,6 +18,7 @@ import logging
 import time
 from uuid import uuid4
 
+from app.rules.suitability_rules import RULE_PACK_VERSION
 from app.schemas.analysis import AnalysisRequest, AnalysisResult, Limitation
 from app.schemas.common import (
     SCHEMA_VERSION,
@@ -41,12 +42,10 @@ from app.services.cost_estimator import CostEstimator
 from app.services.migration_planner import MigrationPlanner
 from app.services.requirement_extractor import RequirementExtractionService
 from app.services.security_analyzer import SecurityAnalyzer
-from app.services.serverless_suitability import SuitabilityService
+from app.services.serverless_suitability import SuitabilityService, evaluate_suitability
 from app.services.workload_classifier import classify
 
 logger = logging.getLogger("nyx.pipeline")
-
-RULE_PACK_VERSION = "2026.10"
 
 
 class AnalysisPipeline:
@@ -87,7 +86,10 @@ class AnalysisPipeline:
         signals = extraction.signals
         workload = classify(requirements, signals)
         plans, inventory = identify(requirements, signals)
-        suitability = self.suitability.assess(requirements, signals, plans)
+        # Serverless suitability has exactly one authoritative implementation;
+        # it validates its inputs and returns a fully explained report.  The
+        # service instance is retained as the stateless stage holder only.
+        suitability = evaluate_suitability(requirements, signals, plans)
 
         providers = request.options.providers
         graphs = self.architecture.build(
@@ -361,4 +363,6 @@ def run_analysis(requirements: object, *, use_ai: bool = True) -> AnalysisResult
     return get_pipeline().run(request)
 
 
-__all__ = ["AnalysisPipeline", "get_pipeline", "run_analysis", "RULE_PACK_VERSION"]
+# RULE_PACK_VERSION is re-exported for backwards compatibility.  The value is
+# owned by app.rules.suitability_rules and must not be restated in this module.
+__all__ = ["RULE_PACK_VERSION", "AnalysisPipeline", "get_pipeline", "run_analysis"]
