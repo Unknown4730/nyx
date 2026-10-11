@@ -17,7 +17,7 @@ import {
   type ReactNode,
 } from 'react'
 
-import { api, NyxApiError } from '@/lib/api'
+import { api, fieldErrorMap, NyxApiError } from '@/lib/api'
 import type {
   AnalysisOptions,
   AnalysisResult,
@@ -28,21 +28,23 @@ import type {
   ProjectSummary,
 } from '@/types/analysis'
 import type { AiStatus, DraftEnvelope, MetaPayload, ProjectStats, RequirementDraft } from '@/types/nyx'
-import { EMPTY_DRAFT, toRequest } from '@/types/nyx'
+import { EMPTY_DRAFT, normaliseOptions, toDraft, toRequest } from '@/types/nyx'
 
 const DRAFT_KEY = 'nyx.draft.v1'
 
+/**
+ * Request options, limited to the fields `AnalysisOptions` actually declares.
+ * The backend forbids unknown keys (`StrictModel`), so anything else would be a
+ * 422 rather than a preference.  Stage and view preferences are presentation
+ * concerns: the deterministic pipeline always produces the security, cost,
+ * migration and conventional-view sections, and the current blueprint is chosen
+ * with this provider's `view` state — never with a request flag.
+ */
 export const DEFAULT_OPTIONS: AnalysisOptions = {
   use_ai: true,
   providers: ['aws', 'gcp', 'azure'],
   default_provider: null,
   max_operations_per_view: 14,
-  include_conventional_view: true,
-  include_security_review: true,
-  include_cost_estimate: true,
-  include_migration_plan: true,
-  locale: 'en',
-  verbose: false,
 }
 
 type Status = 'idle' | 'running' | 'ready' | 'error'
@@ -76,6 +78,7 @@ interface NyxValue {
   stats: ProjectStats | null
   projectsError: string | null
   refreshProjects: () => Promise<void>
+  refreshBackend: () => Promise<void>
   deleteProject: (id: string) => Promise<void>
 
   provider: CloudProvider
@@ -123,7 +126,7 @@ export function NyxProvider({ children }: { children: ReactNode }) {
 
   const stored = useRef<DraftEnvelope | null>(readStoredDraft())
   const [draft, setDraft] = useState<RequirementDraft>(stored.current?.draft ?? EMPTY_DRAFT)
-  const [options, setOptions] = useState<AnalysisOptions>({ ...DEFAULT_OPTIONS, ...(stored.current?.options ?? {}) })
+  const [options, setOptions] = useState<AnalysisOptions>(() => normaliseOptions(stored.current?.options, DEFAULT_OPTIONS))
   const [result, setResult] = useState<AnalysisResult | null>(stored.current?.result ?? null)
   const [projectId, setProjectId] = useState<string | null>(null)
 
@@ -142,32 +145,39 @@ export function NyxProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<string>(stored.current?.result?.primary_view ?? 'proposed')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
+  /**
+   * Read the backend bootstrap: product/enum metadata, health and AI status.
+   * `isStale` lets the mounting effect drop a response that lands after unmount
+   * without duplicating this logic for the manual retry path.
+   */
+  const loadBackend = useCallback(async (isStale: () => boolean = () => false) => {
+    try {
+      const [payload, health, ai] = await Promise.all([api.meta(), api.health(), api.aiStatus()])
+      if (isStale()) return
+      setMeta(payload)
+      setAiStatus(ai)
+      setBackendOnline(health.status === 'ok' || health.status === 'degraded')
+      setMetaError(null)
+      if (!stored.current?.result) {
+        setOptions((current) => ({
+          ...current,
+          max_operations_per_view: payload.limits.max_operations_per_view.default,
+        }))
+      }
+    } catch (cause) {
+      if (isStale()) return
+      setBackendOnline(false)
+      setMetaError(cause instanceof Error ? cause.message : 'The metadata endpoint is unavailable.')
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
-    void (async () => {
-      try {
-        const [payload, health, ai] = await Promise.all([api.meta(), api.health(), api.aiStatus()])
-        if (cancelled) return
-        setMeta(payload)
-        setAiStatus(ai)
-        setBackendOnline(health.status === 'ok' || health.status === 'degraded')
-        setMetaError(null)
-        if (!stored.current?.result) {
-          setOptions((current) => ({
-            ...current,
-            max_operations_per_view: payload.limits.max_operations_per_view.default,
-          }))
-        }
-      } catch (cause) {
-        if (cancelled) return
-        setBackendOnline(false)
-        setMetaError(cause instanceof Error ? cause.message : 'The metadata endpoint is unavailable.')
-      }
-    })()
+    void loadBackend(() => cancelled)
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [loadBackend])
 
   const refreshProjects = useCallback(async () => {
     try {
@@ -183,6 +193,11 @@ export function NyxProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refreshProjects()
   }, [refreshProjects])
+
+  /** Re-read everything the shell displays — used by the offline "retry" affordance. */
+  const refreshBackend = useCallback(async () => {
+    await Promise.all([loadBackend(), refreshProjects()])
+  }, [loadBackend, refreshProjects])
 
   const patchDraft = useCallback((patch: Partial<RequirementDraft>) => {
     setDraft((current) => ({ ...current, ...patch }))
@@ -256,13 +271,10 @@ export function NyxProvider({ children }: { children: ReactNode }) {
       const message = cause instanceof NyxApiError ? cause.message : 'The analysis could not be completed.'
       setError(message)
       setStatus('error')
-      if (cause instanceof NyxApiError && cause.status === 422 && Array.isArray(cause.detail)) {
-        const map: Record<string, string> = {}
-        for (const item of cause.detail as { loc?: (string | number)[]; msg?: string }[]) {
-          const field = (item.loc ?? []).filter((part) => part !== 'body').map(String).join('.')
-          if (field) map[field] = item.msg ?? 'invalid value'
-        }
-        setFieldErrors(map)
+      if (cause instanceof NyxApiError && cause.status === 422) {
+        // The backend sends validation details as "field.path: message" strings,
+        // so they can be rendered next to the control they belong to.
+        setFieldErrors(fieldErrorMap(cause.details))
       }
       return null
     }
@@ -274,13 +286,17 @@ export function NyxProvider({ children }: { children: ReactNode }) {
       setError(null)
       try {
         const detail = await api.getProject(id)
+        // `toDraft` is the inverse of `toRequest`: it converts the stored
+        // requirements (numbers, enums, nulls) into the string-based form state.
+        const nextDraft = toDraft(detail.requirements)
         setResult(detail.result)
-        setDraft({ ...EMPTY_DRAFT, ...detail.requirements, template_id: detail.requirements.template_id ?? null })
+        setDraft(nextDraft)
         setProvider(detail.result.default_provider ?? 'aws')
         setView(detail.result.primary_view ?? 'proposed')
         setProjectId(detail.id)
         setStatus('ready')
-        persist(detail.result, draft, options)
+        // Persist the draft that belongs to this result, not the previous one.
+        persist(detail.result, nextDraft, options)
         return detail
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'This saved project could not be opened.')
@@ -288,7 +304,7 @@ export function NyxProvider({ children }: { children: ReactNode }) {
         return null
       }
     },
-    [draft, options, persist],
+    [options, persist],
   )
 
   const saveProject = useCallback(
@@ -369,6 +385,7 @@ export function NyxProvider({ children }: { children: ReactNode }) {
     stats,
     projectsError,
     refreshProjects,
+    refreshBackend,
     deleteProject,
     provider,
     setProvider,

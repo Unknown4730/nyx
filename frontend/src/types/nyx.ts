@@ -1,15 +1,19 @@
 /**
- * Hand-written types for the descriptive endpoints (`/api/meta`, `/api/ai/status`)
- * and for client-only view models.  The analysis contract itself lives in
- * `./analysis.ts`, which is generated from the backend Pydantic models.
+ * Hand-written types for the descriptive endpoints (`/api/meta`, `/api/ai/status`),
+ * for client-only view models, and for the one analysis-contract type the schema
+ * generator does not emit yet (`AnalysisExportRequest` — see the Cycle 0a report).
+ * Everything else in the analysis contract lives in `./analysis.ts`, which is
+ * generated from the backend Pydantic models.
  */
 import type {
   AiStatusPayload,
   AnalysisOptions,
+  AnalysisRequest,
   ApplicationRequirements,
   ArchitectureStyle,
   AnalysisResult,
   CloudProvider,
+  DataStorageKind,
   ProjectSummary,
   SuitabilityOutcome,
 } from './analysis'
@@ -169,8 +173,129 @@ export interface RequirementDraft {
 export interface DraftEnvelope {
   savedAt: string
   draft: RequirementDraft
-  options: { use_ai: boolean; providers: CloudProvider[]; default_provider: CloudProvider | null; max_operations_per_view: number; include_conventional_view: boolean }
+  /** Exactly the request options the backend accepts (no legacy or extra flags). */
+  options: AnalysisOptions
   result?: AnalysisResult | null
+}
+
+/* ------------------------------------------------------- contract runtime mirrors
+ * The generated `analysis.ts` describes the contract as *types*.  Validation of
+ * stored session data and of form input needs the same members at runtime, so the two
+ * mappings below mirror the generated unions.
+ *
+ * They are keyed by the union itself, which makes them exhaustive by construction:
+ * adding a member to a generated union fails to compile until the mapping is updated
+ * (missing key), and removing or renaming one is rejected as an unknown key.  A plain
+ * array of values would only prove that the entries present are valid — a new member
+ * could then be silently dropped at runtime.  These hold memberships only; labels and
+ * ordering for the UI still come from `meta.enums.*`, so this is a guard, never a
+ * second catalogue of options.
+ */
+
+const CLOUD_PROVIDER_MEMBERS = {
+  aws: true,
+  gcp: true,
+  azure: true,
+  undecided: true,
+} satisfies Record<CloudProvider, true>
+
+const DATA_STORAGE_KIND_MEMBERS = {
+  relational: true,
+  document: true,
+  key_value: true,
+  object_storage: true,
+  file_share: true,
+  cache_session: true,
+  search_index: true,
+  time_series: true,
+  analytical_warehouse: true,
+  queue_or_log: true,
+  none: true,
+  unknown: true,
+} satisfies Record<DataStorageKind, true>
+
+/** Own-property lookup keeps membership prototype-safe (`constructor` is not a member). */
+function isCloudProvider(value: unknown): value is CloudProvider {
+  return typeof value === 'string' && Object.hasOwn(CLOUD_PROVIDER_MEMBERS, value)
+}
+
+function isStorageKind(value: unknown): value is DataStorageKind {
+  return typeof value === 'string' && Object.hasOwn(DATA_STORAGE_KIND_MEMBERS, value)
+}
+
+/**
+ * Keep the storage kinds the contract declares and drop everything else.
+ *
+ * The draft holds text (`string[]`) because a multi-select is a text control, while
+ * `ApplicationRequirements.data_storage` is `DataStorageKind[]`.  Blank entries,
+ * duplicates and values that are not contract members are removed: an unsupported
+ * token must not be sent as though it were a valid enum member, and it must not be
+ * rewritten into a different kind either.  The vocabulary shown to users comes from
+ * `meta.enums.data_storage`, so anything else cannot arise from the form itself.
+ */
+export function toStorageKinds(values: readonly string[]): DataStorageKind[] {
+  const kinds: DataStorageKind[] = []
+  for (const raw of values) {
+    const value = raw.trim()
+    if (!isStorageKind(value) || kinds.includes(value)) continue
+    kinds.push(value)
+  }
+  return kinds
+}
+
+/**
+ * Valid providers from a stored value, or `undefined` when nothing usable is left.
+ * `undefined` is meaningful: omitting the key lets the backend apply its own
+ * default provider set instead of the client asserting an empty one.
+ */
+function toProviderList(value: unknown, fallback: readonly CloudProvider[] | undefined): CloudProvider[] | undefined {
+  const safeFallback = fallback ? [...fallback] : undefined
+  if (!Array.isArray(value)) return safeFallback
+  const providers: CloudProvider[] = []
+  for (const item of value) {
+    // `undecided` is a real enum member but not a selectable provider: the backend
+    // strips it from `options.providers` and rejects an empty resulting list.
+    if (!isCloudProvider(item) || item === 'undecided' || providers.includes(item)) continue
+    providers.push(item)
+  }
+  return providers.length > 0 ? providers : safeFallback
+}
+
+function toDefaultProvider(value: unknown, fallback: CloudProvider | null): CloudProvider | null {
+  if (value === null) return null // "no preference" is a valid, meaningful value
+  if (isCloudProvider(value) && value !== 'undecided') return value
+  return fallback
+}
+
+/**
+ * Turn whatever a session envelope holds into valid `AnalysisOptions`.
+ *
+ * TypeScript types do not sanitise stored JSON.  A draft written by the previous
+ * build carries `include_conventional_view` and friends, and the backend forbids
+ * unknown keys (`StrictModel`), so spreading that object into a request produced a
+ * 422 for the whole session.  Known keys are copied over the defaults, unknown keys
+ * are dropped, and a valid saved selection is kept — the stored draft is migrated,
+ * not discarded.
+ *
+ * The numeric bounds the backend enforces for `max_operations_per_view` are *not*
+ * duplicated here: the form control is bound to `meta.limits.max_operations_per_view`
+ * and the API remains the authority on its own range.
+ */
+export function normaliseOptions(stored: unknown, defaults: AnalysisOptions): AnalysisOptions {
+  // Nothing stored (or not an object): keep the defaults, copying the provider list
+  // so the caller's constant can never be mutated through the returned state.
+  if (!stored || typeof stored !== 'object') {
+    return { ...defaults, providers: defaults.providers ? [...defaults.providers] : undefined }
+  }
+  const source = stored as Partial<Record<keyof AnalysisOptions, unknown>>
+  const limit = source.max_operations_per_view
+  return {
+    use_ai: typeof source.use_ai === 'boolean' ? source.use_ai : defaults.use_ai,
+    providers: toProviderList(source.providers, defaults.providers),
+    default_provider: toDefaultProvider(source.default_provider, defaults.default_provider ?? null),
+    max_operations_per_view:
+      typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? limit : defaults.max_operations_per_view,
+  }
 }
 
 export const EMPTY_DRAFT: RequirementDraft = {
@@ -198,12 +323,57 @@ export function toRequest(draft: RequirementDraft, options: AnalysisOptions): An
     availability: draft.availability === 'unknown' ? null : (draft.availability as ApplicationRequirements['availability']),
     budget: draft.budget === 'balanced' && !draft.budget ? null : (draft.budget as ApplicationRequirements['budget']),
     preferred_provider: draft.preferred_provider === 'none' ? null : (draft.preferred_provider as ApplicationRequirements['preferred_provider']),
-    data_storage: draft.data_storage,
+    data_storage: toStorageKinds(draft.data_storage),
     additional_requirements: draft.additional_requirements.trim() ? draft.additional_requirements.trim() : null,
     template_id: draft.template_id,
   }
   return { requirements, options }
 }
+
+/**
+ * Inverse of `toRequest`: turn stored `ApplicationRequirements` back into form
+ * state.  Values the backend treats as "not stated" map back to the draft's own
+ * sentinels (`''` / `'unknown'` / `'none'`), so reopening a project and saving it
+ * again never asserts facts the user did not provide.
+ *
+ * `budget` maps to `'unknown'` rather than `'balanced'` for the same reason: the
+ * backend's `_blank_is_none` validator treats "unknown" as *not stated*, while
+ * "balanced" would claim a deliberate preference.
+ */
+export function toDraft(requirements: ApplicationRequirements): RequirementDraft {
+  return {
+    name: requirements.name ?? '',
+    description: requirements.description ?? '',
+    expected_users: requirements.expected_users == null ? '' : String(requirements.expected_users),
+    traffic_pattern: requirements.traffic_pattern ?? 'unknown',
+    application_type: requirements.application_type ?? 'unknown',
+    availability: requirements.availability ?? 'unknown',
+    budget: requirements.budget ?? 'unknown',
+    preferred_provider: requirements.preferred_provider ?? 'none',
+    data_storage: requirements.data_storage ? [...requirements.data_storage] : [],
+    additional_requirements: requirements.additional_requirements ?? '',
+    template_id: requirements.template_id ?? null,
+  }
+}
+
+/**
+ * Formats `POST /api/analyze/export` accepts.  The endpoint also normalises the
+ * aliases `md` / `markdown` / `report` / `json` / `""`; the client only ever sends
+ * the canonical pair.
+ */
+export type ExportFormat = 'json' | 'markdown'
+
+/**
+ * Body of `POST /api/analyze/export` — an analysis request plus the wanted format,
+ * mirroring `AnalysisExportRequest` in `backend/app/schemas/analysis.py`.
+ *
+ * `backend/scripts/export_typescript_schema.py` does not list
+ * `AnalysisExportRequest` in its `ROOT_MODELS`, so the model is missing from the
+ * generated `./analysis.ts`.  Deriving the type from the generated
+ * `AnalysisRequest` keeps the requirements/options shape generated (single source
+ * of truth) while the generator is corrected by its owner.
+ */
+export type AnalysisExportRequest = AnalysisRequest & { format?: ExportFormat }
 
 export interface ExportEnvelope {
   format: 'json' | 'markdown'
