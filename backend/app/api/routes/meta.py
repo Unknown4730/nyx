@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.rules.suitability_rules import BANDS, WEIGHT_RATIONALE
+from app.rules.suitability_rules import BANDS, RULE_PACK_VERSION, WEIGHT_RATIONALE
 from app.schemas.analysis import AiStatusPayload
 from app.schemas.common import (
     SCHEMA_VERSION,
@@ -39,7 +39,6 @@ from app.rules.requirement_rules import (
     SESSIONS_PER_USER_BY_TYPE,
 )
 from app.services.cloud_catalog import get_catalog
-from app.services.pipeline import RULE_PACK_VERSION
 from app.services.templates import catalogue_version, load_templates
 
 router = APIRouter(tags=["meta"])
