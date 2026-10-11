@@ -98,7 +98,7 @@ function Inspector({ component, provider, view }: { component: Component | null;
       </section>
       {component.warnings?.length ? (
         <section aria-label="Warnings">
-          <p className="nyx-eyebrow text-signal">Warnings</p>
+          <p className="nyx-eyebrow text-coral">Warnings</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-chalk/85">
             {component.warnings.map((item) => (
               <li key={item}>{item}</li>
@@ -222,8 +222,8 @@ export function ArchitecturePanel({ result }: { result: AnalysisResult }) {
           </div>
           <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 px-1 text-2xs text-silver" aria-label="Legend">
             <li>Dashed violet: asynchronous delivery</li>
-            <li>Dotted grey: optional path</li>
-            <li>Red: crosses a trust boundary</li>
+            <li>Dotted muted: optional path</li>
+            <li>Coral: crosses a trust boundary</li>
           </ul>
         </Panel>
         <div className="xl:sticky xl:top-6 xl:self-start">

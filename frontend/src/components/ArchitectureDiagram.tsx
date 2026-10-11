@@ -8,7 +8,7 @@
  */
 import { useMemo } from 'react'
 
-import { DEPLOYMENT_LABEL, TIER_ACCENT, TIER_LABELS } from '@/lib/tone'
+import { DEPLOYMENT_LABEL, DIAGRAM_COLOUR as C, TIER_ACCENT, TIER_LABELS } from '@/lib/tone'
 import { humanise } from '@/lib/format'
 import type { ArchitectureGraph, CloudProvider, Component, Connection } from '@/types/analysis'
 
@@ -108,10 +108,10 @@ function serviceFor(component: Component, provider: CloudProvider): string | nul
 }
 
 function connectionStyle(connection: Connection): { dash?: string; stroke: string; opacity: number } {
-  if (connection.crosses_trust_boundary) return { stroke: '#FF5B6E', opacity: 0.85, dash: undefined }
-  if (connection.async_delivery) return { stroke: '#A78BFA', opacity: 0.85, dash: '7 5' }
-  if (connection.optional) return { stroke: '#9296A3', opacity: 0.6, dash: '2 4' }
-  return { stroke: '#70E7FF', opacity: 0.6 }
+  if (connection.crosses_trust_boundary) return { stroke: C.trustBoundary, opacity: 0.9, dash: undefined }
+  if (connection.async_delivery) return { stroke: C.asyncConnection, opacity: 0.9, dash: '7 5' }
+  if (connection.optional) return { stroke: C.optionalConnection, opacity: 0.75, dash: '2 4' }
+  return { stroke: C.connection, opacity: 0.7 }
 }
 
 export function ArchitectureDiagram({
@@ -151,7 +151,7 @@ export function ArchitectureDiagram({
     >
       <defs>
         <marker id={markerId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#9296A3" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={C.textSecondary} />
         </marker>
       </defs>
 
@@ -171,12 +171,12 @@ export function ArchitectureDiagram({
               height={maxY - minY}
               rx={18}
               fill="none"
-              stroke="#FF5B6E"
-              strokeOpacity={0.45}
+              stroke={C.trustBoundary}
+              strokeOpacity={0.5}
               strokeDasharray="6 6"
               strokeWidth={1.5}
             />
-            <text x={minX + 14} y={minY + 20} fill="#FF5B6E" fontSize={12} fontFamily="JetBrains Mono, monospace" letterSpacing="0.08em">
+            <text x={minX + 14} y={minY + 20} fill={C.trustBoundary} fontSize={12} fontFamily="JetBrains Mono, monospace" letterSpacing="0.08em">
               {clip(boundary.label.toUpperCase(), 44)}
             </text>
           </g>
@@ -205,8 +205,8 @@ export function ArchitectureDiagram({
             </path>
             {label ? (
               <g transform={`translate(${mid.x} ${mid.y})`}>
-                <rect x={-(label.length * 3.3 + 8)} y={-10} width={label.length * 6.6 + 16} height={18} rx={9} fill="#08090D" stroke="rgba(244,244,240,0.12)" />
-                <text textAnchor="middle" y={3} fontSize={11} fill="#F4F4F0" fillOpacity={0.85} fontFamily="Inter, system-ui, sans-serif">
+                <rect x={-(label.length * 3.3 + 8)} y={-10} width={label.length * 6.6 + 16} height={18} rx={9} fill={C.labelBackground} fillOpacity={0.9} stroke={C.nodeBorder} />
+                <text textAnchor="middle" y={3} fontSize={11} fill={C.text} fillOpacity={0.9} fontFamily="Inter, system-ui, sans-serif">
                   {label}
                 </text>
               </g>
@@ -221,9 +221,9 @@ export function ArchitectureDiagram({
         if (!position || !source) return null
         const selected = selectedId === component.id
         const service = serviceFor(component, provider)
-        const accent = TIER_ACCENT[component.tier] ?? '#9296A3'
+        const accent = TIER_ACCENT[component.tier] ?? C.textMuted
         const deployment = component.deployment_target ? DEPLOYMENT_LABEL[component.deployment_target] ?? humanise(component.deployment_target) : 'Not stated'
-        const deploymentColour = component.deployment_target === 'serverless_function' ? '#D7FF3F' : component.deployment_target === 'managed_service' ? '#70E7FF' : '#A78BFA'
+        const deploymentColour = component.deployment_target === 'serverless_function' ? C.nodeSelected : component.deployment_target === 'managed_service' ? C.connection : C.textSecondary
         return (
           <g
             key={component.id}
@@ -241,7 +241,7 @@ export function ArchitectureDiagram({
                 onSelect(component.id)
               }
             }}
-            className="cursor-pointer outline-none focus-visible:[&>rect.nyx-node-body]:stroke-acid"
+            className="cursor-pointer outline-none focus-visible:[&>rect.nyx-node-body]:stroke-primary"
           >
             <title>{`${component.label} — ${deployment}${service ? ` — ${service}` : ''}`}</title>
             <rect
@@ -249,21 +249,22 @@ export function ArchitectureDiagram({
               width={NODE_WIDTH}
               height={NODE_HEIGHT}
               rx={14}
-              fill="#101218"
-              stroke={selected ? '#D7FF3F' : 'rgba(244,244,240,0.12)'}
+              fill={C.node}
+              fillOpacity={0.88}
+              stroke={selected ? C.nodeSelected : C.nodeBorder}
               strokeWidth={selected ? 2 : 1}
             />
             <rect x={0} y={14} width={4} height={NODE_HEIGHT - 28} rx={2} fill={accent} />
-            <text x={18} y={28} fontSize={10.5} fill="#9296A3" fontFamily="JetBrains Mono, monospace" letterSpacing="0.1em">
+            <text x={18} y={28} fontSize={10.5} fill={C.textSecondary} fontFamily="JetBrains Mono, monospace" letterSpacing="0.1em">
               {clip((TIER_LABELS[component.tier] ?? component.tier).toUpperCase(), 30)}
             </text>
-            <text x={18} y={50} fontSize={15} fontWeight={600} fill="#F4F4F0" fontFamily="Inter, system-ui, sans-serif">
+            <text x={18} y={50} fontSize={15} fontWeight={600} fill={C.text} fontFamily="Inter, system-ui, sans-serif">
               {clip(component.label, 26)}
             </text>
             <text x={18} y={68} fontSize={11.5} fill={deploymentColour} fontFamily="Inter, system-ui, sans-serif">
               {clip(deployment, 30)}
             </text>
-            <text x={18} y={83} fontSize={11} fill="#9296A3" fontFamily="Inter, system-ui, sans-serif">
+            <text x={18} y={83} fontSize={11} fill={C.textSecondary} fontFamily="Inter, system-ui, sans-serif">
               {clip(service ? `${service}` : 'No mapping for this provider', 36)}
             </text>
           </g>

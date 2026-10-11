@@ -94,7 +94,7 @@ function Select({
         </p>
       ) : null}
       {error ? (
-        <p id={`${id}-error`} className="mt-1.5 text-xs text-signal">
+        <p id={`${id}-error`} className="mt-1.5 text-xs text-coral">
           {error}
         </p>
       ) : null}
@@ -110,7 +110,7 @@ function TemplateCards({ templates, onUse, activeId }: { templates: TemplateCard
     <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Sample applications">
       {templates.map((template) => (
         <li key={template.id}>
-          <article className={`nyx-glass-raised flex h-full flex-col p-5 ${activeId === template.id ? 'ring-1 ring-acid/50' : ''}`}>
+          <article className={`nyx-glass-raised nyx-interactive flex h-full flex-col p-5 ${activeId === template.id ? 'ring-1 ring-primary/50' : ''}`}>
             <p className="nyx-eyebrow">Sample</p>
             <h3 className="mt-1 text-base font-semibold text-chalk">{template.name}</h3>
             <p className="mt-1 text-sm text-silver">{template.tagline}</p>
@@ -233,7 +233,7 @@ export function AnalyzePage() {
                 onChange={(event) => setField('name', event.target.value)}
               />
               {errorFor('requirements.name') ? (
-                <p id="req-name-error" className="mt-1.5 text-xs text-signal">
+                <p id="req-name-error" className="mt-1.5 text-xs text-coral">
                   {errorFor('requirements.name')}
                 </p>
               ) : null}
@@ -269,7 +269,7 @@ export function AnalyzePage() {
                 onChange={(event) => setField('description', event.target.value)}
               />
               {errorFor('requirements.description') ? (
-                <p id="req-description-error" className="mt-1.5 text-xs text-signal">
+                <p id="req-description-error" className="mt-1.5 text-xs text-coral">
                   {errorFor('requirements.description')}
                 </p>
               ) : (
@@ -296,7 +296,7 @@ export function AnalyzePage() {
                 onChange={(event) => setField('expected_users', event.target.value)}
               />
               {errorFor('requirements.expected_users') ? (
-                <p id="req-users-error" className="mt-1.5 text-xs text-signal">
+                <p id="req-users-error" className="mt-1.5 text-xs text-coral">
                   {errorFor('requirements.expected_users')}
                 </p>
               ) : null}
@@ -342,11 +342,11 @@ export function AnalyzePage() {
                 return (
                   <label
                     key={option.value}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors ${checked ? 'border-acid/50 bg-acid/[0.07] text-chalk' : 'border-chalk/10 bg-obsidian/50 text-silver hover:text-chalk'}`}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors ${checked ? 'border-primary/50 bg-primary/[0.07] text-chalk' : 'border-chalk/10 bg-obsidian/50 text-silver hover:text-chalk'}`}
                   >
                     <input
                       type="checkbox"
-                      className="h-4 w-4 accent-[#D7FF3F]"
+                      className="h-4 w-4 accent-[#B9A0FF]"
                       checked={checked}
                       onChange={() => toggleStorage(option.value)}
                     />
@@ -373,14 +373,14 @@ export function AnalyzePage() {
                 onChange={(event) => setField('additional_requirements', event.target.value)}
               />
               {errorFor('requirements.additional_requirements') ? (
-                <p className="mt-1.5 text-xs text-signal">{errorFor('requirements.additional_requirements')}</p>
+                <p className="mt-1.5 text-xs text-coral">{errorFor('requirements.additional_requirements')}</p>
               ) : null}
             </div>
             <div className="rounded-xl border border-chalk/[0.08] bg-obsidian/50 p-4">
               <label className="flex items-start gap-3 text-sm">
                 <input
                   type="checkbox"
-                  className="mt-1 h-4 w-4 accent-[#A78BFA]"
+                  className="mt-1 h-4 w-4 accent-[#B9A0FF]"
                   checked={options.use_ai}
                   disabled={!ai.available}
                   onChange={(event) => patchOptions({ use_ai: event.target.checked })}

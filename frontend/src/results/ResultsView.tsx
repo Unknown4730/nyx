@@ -128,7 +128,7 @@ export function ResultsView({ result }: { result: AnalysisResult }) {
             <div className="mt-3 flex flex-wrap gap-2">
               <Chip>{aiAssisted ? 'AI-assisted inputs' : 'Deterministic rules engine'}</Chip>
               <Chip>{`Engine ${result.rule_pack_version}`}</Chip>
-              {saved ? <Chip className="border-acid/35 text-acid">Saved to projects</Chip> : <Chip>Not saved yet</Chip>}
+              {saved ? <Chip className="border-primary/35 text-primary">Saved to projects</Chip> : <Chip>Not saved yet</Chip>}
             </div>
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
@@ -167,7 +167,7 @@ export function ResultsView({ result }: { result: AnalysisResult }) {
           </p>
         ) : null}
         {savedFlash ? (
-          <p role="status" className="mt-4 text-sm text-acid">
+          <p role="status" className="mt-4 text-sm text-primary">
             Saved. It now appears under Projects.
           </p>
         ) : null}
@@ -177,7 +177,7 @@ export function ResultsView({ result }: { result: AnalysisResult }) {
               <ErrorNotice title="Something went wrong" message={notice.text} />
             </div>
           ) : (
-            <p role="status" className="mt-4 text-sm text-acid">
+            <p role="status" className="mt-4 text-sm text-primary">
               {notice.text}
             </p>
           )

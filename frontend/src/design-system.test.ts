@@ -36,16 +36,30 @@ describe('design system', () => {
   it('defines the Obsidian Glass × Electric Acid palette exactly', () => {
     const colors = (config.theme?.extend as { colors: Record<string, string> }).colors
     expect(colors).toEqual({
-      obsidian: '#08090D',
-      carbon: '#101218',
-      elevated: '#171A23',
-      acid: '#D7FF3F',
-      violet: '#A78BFA',
-      cyan: '#70E7FF',
-      chalk: '#F4F4F0',
-      silver: '#9296A3',
-      signal: '#FF5B6E',
+      obsidian: '#080911',
+      carbon: '#0D1020',
+      elevated: '#15182B',
+      primary: '#B9A0FF',
+      'primary-hover': '#C9B7FF',
+      blue: '#73D9FF',
+      coral: '#FF8DA1',
+      champagne: '#FFC994',
+      chalk: '#F4F2FF',
+      silver: '#A5A9C5',
+      muted: '#777D9C',
     })
+  })
+
+  it('uses no green or lime colour anywhere in client source', () => {
+    // Lime/green accents were the old identity; they must not return as hex values or
+    // as Tailwind green/lime utilities.  The lime hue is also caught by name.
+    const GREEN = /#D7FF3F|#E3FF72|\b(text|bg|border|ring|stroke|fill|accent|from|to)-(lime|green|emerald|chartreuse)-\d{2,3}/i
+    const offenders = walk(SRC)
+      .filter((file) => !file.endsWith('design-system.test.ts'))
+      .filter((file) => /\.(tsx|ts|css)$/.test(file) && !file.includes('/test/fixtures/'))
+      .filter((file) => GREEN.test(readFileSync(file, 'utf8')))
+      .map((file) => file.replace(SRC, 'src'))
+    expect(offenders).toEqual([])
   })
 
   it('defines no gradient background images in the Tailwind theme', () => {

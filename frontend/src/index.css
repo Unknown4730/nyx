@@ -3,9 +3,27 @@
 @tailwind utilities;
 
 /*
- * NYX design system — "Obsidian Glass × Electric Acid".
- * Colours are solid tokens from tailwind.config.js. Do not add gradients.
+ * NYX design system — "The Midnight Observatory".
+ *
+ * Solid colour tokens live in tailwind.config.js. Glass tokens are defined once below
+ * and used by every glass level, so the surfaces stay consistent.
+ *
+ * Rules: NO GRADIENTS (no linear/radial/conic functions, no gradient utilities).
+ * Atmosphere comes from solid colour, blur, translucency and borders only.
  */
+
+:root {
+  /* Glass levels: translucent tint over the midnight canvas. */
+  --nyx-glass: rgba(35, 31, 62, 0.48); /* workspace panels */
+  --nyx-glass-elevated: rgba(45, 40, 76, 0.56); /* interactive panels */
+  --nyx-glass-float: rgba(30, 27, 56, 0.7); /* floating controls, overlays */
+  --nyx-glass-nav: rgba(13, 16, 32, 0.62); /* navigation and utility bar */
+  --nyx-glass-border: rgba(185, 160, 255, 0.2);
+  --nyx-glass-highlight: rgba(255, 255, 255, 0.045);
+  /* Opaque stand-in used when backdrop-filter is unsupported. */
+  --nyx-glass-fallback: rgb(24, 22, 46);
+  --nyx-blur: 20px;
+}
 
 @layer base {
   :root {
@@ -23,12 +41,12 @@
   }
 
   ::selection {
-    background: rgba(215, 255, 63, 0.28);
+    background: rgba(185, 160, 255, 0.3);
     color: #ffffff;
   }
 
   :focus-visible {
-    outline: 2px solid #d7ff3f;
+    outline: 2px solid #b9a0ff;
     outline-offset: 2px;
     border-radius: 6px;
   }
@@ -39,24 +57,73 @@
     @apply text-chalk;
     text-wrap: balance;
   }
+
+  /* Grid tracks may shrink below their content, so wide tables and headings scroll inside
+   * their own container instead of forcing the whole page sideways on small screens.
+   * Utility classes such as grid-cols-4 still override this at any breakpoint. */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @layer components {
-  /* Translucent dark glass with a fine border and restrained blur. */
+  /* Glass levels. Each uses real backdrop blur plus a translucent tint. */
+
+  /* 1. Main workspace panels. */
   .nyx-glass {
-    @apply rounded-panel border border-chalk/[0.08] bg-carbon/75 shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset,0_24px_60px_-32px_rgba(0,0,0,0.9)];
-    backdrop-filter: blur(14px) saturate(115%);
-    -webkit-backdrop-filter: blur(14px) saturate(115%);
+    @apply rounded-panel border ;
+    background: var(--nyx-glass);
+    border-color: var(--nyx-glass-border);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2), inset 0 1px 0 var(--nyx-glass-highlight);
+    backdrop-filter: blur(var(--nyx-blur)) saturate(135%);
+    -webkit-backdrop-filter: blur(var(--nyx-blur)) saturate(135%);
   }
 
+  /* 2. Elevated interactive panels (cards, templates, results sections). */
   .nyx-glass-raised {
-    @apply rounded-panel border border-chalk/[0.1] bg-elevated/80 shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset];
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    @apply rounded-panel border;
+    background: var(--nyx-glass-elevated);
+    border-color: rgba(185, 160, 255, 0.24);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
   }
 
+  /* 3. Floating controls and contextual overlays. */
+  .nyx-glass-float {
+    @apply rounded-2xl border;
+    background: var(--nyx-glass-float);
+    border-color: rgba(185, 160, 255, 0.28);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+  }
+
+  /* 4. Navigation and utility surfaces. */
+  .nyx-glass-nav {
+    background: var(--nyx-glass-nav);
+    border-bottom: 1px solid rgba(244, 242, 255, 0.07);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+  }
+
+  /* Solid inset for dense data (tables, detail blocks): readable, not frosted. */
   .nyx-inset {
-    @apply rounded-xl border border-chalk/[0.06] bg-obsidian/60;
+    @apply rounded-xl border border-chalk/[0.06] bg-obsidian/70;
+  }
+
+  /* Hover and focus feedback for interactive glass. Border and tint only; no scaling. */
+  .nyx-interactive {
+    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .nyx-interactive:hover {
+    border-color: rgba(185, 160, 255, 0.42);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(185, 160, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .nyx-interactive:active {
+    border-color: rgba(185, 160, 255, 0.55);
   }
 
   .nyx-eyebrow {
@@ -79,12 +146,16 @@
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
+  /* Primary action: the one solid violet surface on a screen. */
   .nyx-btn-primary {
-    @apply nyx-btn bg-acid text-obsidian hover:bg-[#E3FF72];
+    @apply nyx-btn bg-primary text-obsidian shadow-[0_8px_24px_-12px_rgba(185,160,255,0.6)] hover:bg-primary-hover;
   }
 
   .nyx-btn-secondary {
-    @apply nyx-btn border border-chalk/15 bg-elevated text-chalk hover:border-chalk/30 hover:bg-[#1d2130];
+    @apply nyx-btn border border-chalk/15 text-chalk hover:border-primary/40 hover:bg-chalk/[0.06];
+    background: var(--nyx-glass-float);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   .nyx-btn-ghost {
@@ -92,11 +163,11 @@
   }
 
   .nyx-btn-danger {
-    @apply nyx-btn border border-signal/40 bg-signal/10 text-signal hover:bg-signal/20;
+    @apply nyx-btn border border-coral/40 bg-coral/10 text-coral hover:bg-coral/20;
   }
 
   .nyx-field {
-    @apply w-full rounded-xl border border-chalk/[0.12] bg-obsidian/70 px-3 py-2 text-sm text-chalk placeholder:text-silver/70 focus:border-acid/60 focus:outline-none focus:ring-2 focus:ring-acid/25 disabled:opacity-60;
+    @apply w-full rounded-xl border border-chalk/[0.12] bg-obsidian/70 px-3 py-2 text-sm text-chalk placeholder:text-muted focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-60;
   }
 
   .nyx-label {
@@ -116,11 +187,34 @@
   }
 
   .nyx-link {
-    @apply text-acid underline-offset-4 hover:underline;
+    @apply text-primary underline-offset-4 hover:underline;
   }
 
   .nyx-animate-in {
     animation: fade-up 240ms ease-out both;
+  }
+
+  /* Atmosphere: fixed, decorative, behind the content. Solid colour, blur and CSS geometry. */
+  .nyx-atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    background-color: #080911;
+  }
+
+  .nyx-grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.6;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M64 0H0V64' fill='none' stroke='%23F4F2FF' stroke-opacity='0.035'/%3E%3C/svg%3E");
+  }
+
+  .nyx-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(96px);
   }
 }
 
@@ -128,6 +222,40 @@
   .nyx-scroll-x {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Browsers without backdrop-filter: keep the same surfaces, opaque enough to read. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .nyx-glass,
+  .nyx-glass-raised,
+  .nyx-glass-float,
+  .nyx-glass-nav,
+  .nyx-btn-secondary {
+    background: var(--nyx-glass-fallback);
+  }
+}
+
+/* Users who ask for less transparency get solid surfaces with the same borders. */
+@media (prefers-reduced-transparency: reduce) {
+  .nyx-glass,
+  .nyx-glass-raised,
+  .nyx-glass-float,
+  .nyx-glass-nav,
+  .nyx-btn-secondary {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--nyx-glass-fallback);
+  }
+}
+
+/* Smaller screens: keep the atmosphere but make blur cheaper to paint. */
+@media (max-width: 640px) {
+  .nyx-orb {
+    filter: blur(64px);
+  }
+  :root {
+    --nyx-blur: 14px;
   }
 }
 

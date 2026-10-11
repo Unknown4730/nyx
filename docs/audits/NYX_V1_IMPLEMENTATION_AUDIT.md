@@ -119,7 +119,7 @@ Severity: **P0** blocks the core product; **P1** a defect a user or examiner wou
 
 **Open items carried into V1 (not defects of the release, but recorded):**
 
-- O1: No browser-based visual or accessibility audit (see section 7).
+- O1: Partly open. After the visual redesign, headless Chromium was used to screenshot the home, analyze, projects and project-result pages at 1440px and 390px, and to check horizontal overflow and glass rendering. No full accessibility audit, contrast measurement, or manual review on real devices has been done (see section 7).
 - O2: The graph endpoint returns HTTP 200 with an error object for an unknown view. The route's
   pattern validation rejects unknown views with 422 before this branch is reachable, so the
   branch is dead code. It is left in place rather than changed without a test need.

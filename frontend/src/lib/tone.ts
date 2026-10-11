@@ -17,48 +17,52 @@ export interface Tone {
   dot: string
 }
 
+// Status semantics (colour always comes with a text label):
+//   success / strong   icy blue      important / good   violet
+//   warning / partial  champagne     error / caution    coral
+//   in progress, info  violet        not stated         muted neutral
 const TONE = {
   strong: {
     label: 'Strong',
-    text: 'text-acid',
-    chip: 'bg-acid/10 text-acid border-acid/35',
-    bar: 'bg-acid',
-    dot: 'bg-acid',
+    text: 'text-blue',
+    chip: 'bg-blue/10 text-blue border-blue/35',
+    bar: 'bg-blue',
+    dot: 'bg-blue',
   },
   good: {
     label: 'Good',
-    text: 'text-cyan',
-    chip: 'bg-cyan/10 text-cyan border-cyan/35',
-    bar: 'bg-cyan',
-    dot: 'bg-cyan',
+    text: 'text-primary',
+    chip: 'bg-primary/10 text-primary border-primary/35',
+    bar: 'bg-primary',
+    dot: 'bg-primary',
   },
   partial: {
     label: 'Partial',
-    text: 'text-violet',
-    chip: 'bg-violet/10 text-violet border-violet/35',
-    bar: 'bg-violet',
-    dot: 'bg-violet',
+    text: 'text-champagne',
+    chip: 'bg-champagne/10 text-champagne border-champagne/35',
+    bar: 'bg-champagne',
+    dot: 'bg-champagne',
   },
   caution: {
     label: 'Caution',
-    text: 'text-signal',
-    chip: 'bg-signal/10 text-signal border-signal/40',
-    bar: 'bg-signal',
-    dot: 'bg-signal',
+    text: 'text-coral',
+    chip: 'bg-coral/10 text-coral border-coral/40',
+    bar: 'bg-coral',
+    dot: 'bg-coral',
   },
   unknown: {
     label: 'Not stated',
     text: 'text-silver',
     chip: 'bg-chalk/[0.04] text-silver border-chalk/[0.12]',
-    bar: 'bg-silver/60',
-    dot: 'bg-silver/60',
+    bar: 'bg-muted',
+    dot: 'bg-muted',
   },
   info: {
     label: 'Info',
-    text: 'text-cyan',
-    chip: 'bg-cyan/10 text-cyan border-cyan/30',
-    bar: 'bg-cyan',
-    dot: 'bg-cyan',
+    text: 'text-primary',
+    chip: 'bg-primary/10 text-primary border-primary/30',
+    bar: 'bg-primary',
+    dot: 'bg-primary',
   },
 } satisfies Record<string, Tone>
 
@@ -74,12 +78,12 @@ export const SEVERITY_TONE: Record<Severity, Tone> = {
   critical: TONE.caution,
   high: TONE.caution,
   medium: TONE.partial,
-  low: TONE.good,
+  low: TONE.strong,
   info: TONE.info,
 }
 
 export const EFFORT_TONE: Record<EffortLevel, Tone> = {
-  low: TONE.good,
+  low: TONE.strong,
   moderate: TONE.partial,
   high: TONE.caution,
   further_assessment_required: TONE.unknown,
@@ -88,8 +92,8 @@ export const EFFORT_TONE: Record<EffortLevel, Tone> = {
 /** `ServiceMapping.confidence` is a free string in the schema; unknown values fall back to neutral. */
 export const CONFIDENCE_TONE: Record<string, Tone> = {
   high: TONE.strong,
-  medium: TONE.partial,
-  low: TONE.unknown,
+  medium: TONE.good,
+  low: TONE.partial,
 }
 
 export function outcomeTone(outcome: SuitabilityOutcome | null | undefined): Tone {
@@ -111,9 +115,9 @@ export function confidenceTone(level: string | null | undefined): Tone {
 export const TONES = TONE
 
 export const PROVIDER_ACCENT: Record<string, { label: string; short: string; dot: string }> = {
-  aws: { label: 'AWS', short: 'AWS', dot: 'bg-[#FF9F43]' },
-  gcp: { label: 'Google Cloud', short: 'GCP', dot: 'bg-cyan' },
-  azure: { label: 'Azure', short: 'Azure', dot: 'bg-violet' },
+  aws: { label: 'AWS', short: 'AWS', dot: 'bg-champagne' },
+  gcp: { label: 'Google Cloud', short: 'GCP', dot: 'bg-blue' },
+  azure: { label: 'Azure', short: 'Azure', dot: 'bg-primary' },
 }
 
 /** Tier labels for the architecture layout bands. */
@@ -128,17 +132,35 @@ export const TIER_LABELS: Record<string, string> = {
   operations: 'Operations',
 }
 
-/** Accent stripe per tier, so the diagram groups components without extra colours. */
+/**
+ * Accent stripe per tier. Four categories, each with one job:
+ * entry (blue), compute (violet), data and messaging (silver / champagne), security (coral).
+ */
 export const TIER_ACCENT: Record<string, string> = {
-  presentation: '#70E7FF',
-  edge: '#70E7FF',
-  application: '#D7FF3F',
-  integration: '#A78BFA',
-  processing: '#FF9F43',
-  data: '#A78BFA',
-  security: '#FF5B6E',
-  operations: '#9296A3',
+  presentation: '#73D9FF',
+  edge: '#73D9FF',
+  application: '#B9A0FF',
+  processing: '#B9A0FF',
+  integration: '#FFC994',
+  data: '#A5A9C5',
+  security: '#FF8DA1',
+  operations: '#777D9C',
 }
+
+/** Diagram colours by role, shared by the SVG so the palette lives in one place. */
+export const DIAGRAM_COLOUR = {
+  node: '#15182B',
+  nodeBorder: 'rgba(244,242,255,0.14)',
+  nodeSelected: '#B9A0FF',
+  text: '#F4F2FF',
+  textSecondary: '#A5A9C5',
+  textMuted: '#777D9C',
+  connection: '#73D9FF',
+  asyncConnection: '#B9A0FF',
+  optionalConnection: '#777D9C',
+  trustBoundary: '#FF8DA1',
+  labelBackground: '#080911',
+} as const
 
 export const DEPLOYMENT_LABEL: Record<string, string> = {
   serverless_function: 'Serverless function',

@@ -31,7 +31,7 @@ export function HomePage() {
       <section className="grid gap-6 pt-6 md:pt-12">
         <p className="nyx-eyebrow">AI-assisted serverless migration · cloud architecture advisor</p>
         <h1 className="text-4xl font-semibold tracking-tight text-chalk sm:text-5xl lg:text-6xl">
-          Rethink your <span className="text-acid">architecture.</span>
+          Rethink your <span className="text-primary">architecture.</span>
         </h1>
         <p className="max-w-2xl text-base leading-relaxed text-silver sm:text-lg">
           NYX tests whether a system should move to serverless, shows what it would look like on AWS, Google Cloud or Azure, and
@@ -58,7 +58,7 @@ export function HomePage() {
               <dt className="nyx-eyebrow">API</dt>
               <dd className="mt-2">
                 <span
-                  className={`nyx-chip ${online ? 'border-acid/35 bg-acid/10 text-acid' : backendOnline === false ? 'border-signal/40 bg-signal/10 text-signal' : 'border-chalk/[0.12] bg-chalk/[0.04] text-silver'}`}
+                  className={`nyx-chip ${online ? 'border-primary/35 bg-primary/10 text-primary' : backendOnline === false ? 'border-coral/40 bg-coral/10 text-coral' : 'border-chalk/[0.12] bg-chalk/[0.04] text-silver'}`}
                 >
                   {online ? 'Online' : backendOnline === false ? 'Offline' : 'Checking'}
                 </span>
@@ -76,7 +76,7 @@ export function HomePage() {
             </div>
           </dl>
           {backendOnline === false ? (
-            <p className="mt-5 rounded-xl border border-signal/30 bg-signal/[0.06] p-3 text-sm text-chalk/90">
+            <p className="mt-5 rounded-xl border border-coral/30 bg-coral/[0.06] p-3 text-sm text-chalk/90">
               NYX cannot reach its API. Start the backend as described in the README, then reload this page.
             </p>
           ) : null}
@@ -92,7 +92,7 @@ export function HomePage() {
             <ul className="mt-4 divide-y divide-chalk/[0.06]">
               {recent.map((project) => (
                 <li key={project.id}>
-                  <Link to={`/projects/${encodeURIComponent(project.id)}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 hover:text-acid">
+                  <Link to={`/projects/${encodeURIComponent(project.id)}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 hover:text-primary">
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-chalk">{project.name}</span>
                     <ToneChip tone={outcomeTone(project.suitability_outcome as SuitabilityOutcome)}>{humanise(project.suitability_outcome)}</ToneChip>
                     <span className="text-2xs text-silver">{relativeTime(project.updated_at)}</span>
@@ -117,8 +117,8 @@ export function HomePage() {
         </h2>
         <ol className="grid gap-4 md:grid-cols-3">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="nyx-glass-raised p-5">
-              <span className="nyx-metric text-sm text-acid">0{index + 1}</span>
+            <li key={step.title} className="nyx-glass-raised nyx-interactive p-5">
+              <span className="nyx-metric text-sm text-primary">0{index + 1}</span>
               <h3 className="mt-2 text-lg font-semibold text-chalk">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-silver">{step.body}</p>
             </li>

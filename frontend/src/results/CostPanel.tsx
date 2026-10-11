@@ -19,7 +19,7 @@ export function CostPanel({ result }: { result: AnalysisResult }) {
 
   return (
     <div className="grid gap-6">
-      <Panel labelledBy="cost-heading" className="border-violet/25">
+      <Panel labelledBy="cost-heading" className="border-primary/25">
         <SectionHeading
           id="cost-heading"
           eyebrow={`Model · ${cost.unit_name}`}
@@ -27,8 +27,8 @@ export function CostPanel({ result }: { result: AnalysisResult }) {
           description={cost.disclaimer}
         />
         {insufficient ? (
-          <div role="note" className="mt-4 rounded-xl border border-violet/35 bg-violet/[0.08] p-3 text-sm">
-            <p className="font-semibold text-violet">Not enough stated inputs for a comparison</p>
+          <div role="note" className="mt-4 rounded-xl border border-primary/35 bg-primary/[0.08] p-3 text-sm">
+            <p className="font-semibold text-primary">Not enough stated inputs for a comparison</p>
             <ul className="mt-2 list-disc pl-5 text-chalk/90">
               {(cost.insufficient_inputs ?? []).map((item) => (
                 <li key={item}>{item}</li>

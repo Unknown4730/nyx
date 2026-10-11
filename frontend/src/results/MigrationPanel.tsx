@@ -39,7 +39,7 @@ export function MigrationPanel({ result }: { result: AnalysisResult }) {
           {(migration.phases ?? []).map((phase) => (
             <li key={phase.id} className="nyx-inset relative p-5">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="nyx-metric flex h-8 w-8 items-center justify-center rounded-full border border-acid/40 text-sm text-acid">
+                <span className="nyx-metric flex h-8 w-8 items-center justify-center rounded-full border border-primary/40 text-sm text-primary">
                   {phase.index}
                 </span>
                 <h3 className="text-base font-semibold text-chalk">{phase.title}</h3>

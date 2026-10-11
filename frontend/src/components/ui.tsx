@@ -122,7 +122,7 @@ export function ScoreGauge({
   return (
     <div className="relative flex h-40 w-40 shrink-0 items-center justify-center">
       <svg viewBox="0 0 140 140" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden="true">
-        <circle cx="70" cy="70" r={radius} fill="none" stroke="rgba(244,244,240,0.08)" strokeWidth="10" />
+        <circle cx="70" cy="70" r={radius} fill="none" stroke="rgba(244,242,255,0.08)" strokeWidth="10" />
         {hasScore ? (
           <circle
             cx="70"
@@ -151,7 +151,7 @@ export function Spinner({ label }: { label: string }) {
     <span className="inline-flex items-center gap-2 text-sm text-silver" role="status">
       <span
         aria-hidden="true"
-        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-chalk/20 border-t-acid"
+        className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-chalk/20 border-t-primary"
       />
       {label}
     </span>
@@ -188,8 +188,8 @@ export function ErrorNotice({
   onRetry?: () => void
 }) {
   return (
-    <div role="alert" className="rounded-2xl border border-signal/35 bg-signal/[0.07] p-4">
-      <p className="text-sm font-semibold text-signal">{title}</p>
+    <div role="alert" className="rounded-2xl border border-coral/35 bg-coral/[0.07] p-4">
+      <p className="text-sm font-semibold text-coral">{title}</p>
       <p className="mt-1 text-sm text-chalk/90">{message}</p>
       {details.length > 0 ? (
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-chalk/80">
@@ -218,7 +218,7 @@ export function Disclosure({ children, summary, defaultOpen = false }: { childre
 
 export function Table({ caption, children }: { caption: string; children: ReactNode }) {
   return (
-    <div className="nyx-scroll-x -mx-1 rounded-xl border border-chalk/[0.07]">
+    <div className="nyx-scroll-x relative -mx-1 rounded-xl border border-chalk/[0.07]">
       <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         {children}

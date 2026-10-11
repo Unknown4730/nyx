@@ -58,8 +58,8 @@ export function OverviewPanel({ result }: { result: AnalysisResult }) {
             </h2>
             <p className="nyx-subtitle mt-2">{suitability.rationale}</p>
             {provisional ? (
-              <div role="note" className="mt-4 rounded-xl border border-violet/35 bg-violet/[0.08] p-3 text-sm text-chalk/90">
-                <p className="font-semibold text-violet">Provisional verdict</p>
+              <div role="note" className="mt-4 rounded-xl border border-primary/35 bg-primary/[0.08] p-3 text-sm text-chalk/90">
+                <p className="font-semibold text-primary">Provisional verdict</p>
                 <p className="mt-1">
                   The score is shown for orientation only. Several deciding inputs are not stated, so NYX has not issued a
                   final outcome. Answer the open questions below to firm it up.

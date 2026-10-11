@@ -15,7 +15,7 @@ function Mark() {
   return (
     <svg viewBox="0 0 64 64" className="h-9 w-9 shrink-0 rounded-[11px] bg-elevated text-chalk ring-1 ring-chalk/10" aria-hidden="true">
       <path d="M19 45V19l26 26V19" fill="none" stroke="currentColor" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="51" cy="13" r="3.5" fill="#D7FF3F" />
+      <circle cx="51" cy="13" r="3.5" fill="#B9A0FF" />
     </svg>
   )
 }
@@ -30,14 +30,22 @@ export function Layout() {
   }, [location.pathname])
 
   const status =
-    backendOnline === null ? { label: 'Checking API', tone: 'border-chalk/[0.12] text-silver' } : backendOnline ? { label: 'API online', tone: 'border-acid/35 text-acid' } : { label: 'API offline', tone: 'border-signal/40 text-signal' }
+    backendOnline === null ? { label: 'Checking API', tone: 'border-chalk/[0.12] text-silver' } : backendOnline ? { label: 'API online', tone: 'border-primary/35 text-primary' } : { label: 'API offline', tone: 'border-coral/40 text-coral' }
 
   return (
     <div className="flex min-h-screen flex-col">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-acid focus:px-3 focus:py-2 focus:text-obsidian">
+      {/* Decorative atmosphere: solid colour, blur and a faint grid. Never interactive. */}
+      <div aria-hidden="true" className="nyx-atmosphere" data-testid="atmosphere">
+        <div className="nyx-grid" />
+        <span className="nyx-orb -left-40 -top-48 h-[34rem] w-[34rem] bg-primary/[0.16]" />
+        <span className="nyx-orb -right-32 top-[18%] h-[28rem] w-[28rem] bg-blue/[0.1]" />
+        <span className="nyx-orb bottom-[8%] left-[6%] h-[20rem] w-[20rem] bg-coral/[0.06]" />
+        <span className="nyx-orb right-[22%] top-24 h-[14rem] w-[14rem] bg-champagne/[0.05]" />
+      </div>
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-3 focus:py-2 focus:text-obsidian">
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 border-b border-chalk/[0.07] bg-obsidian/80 backdrop-blur-md">
+      <header className="nyx-glass-nav sticky top-0 z-40">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3.5 sm:px-8">
           <NavLink to="/" className="flex items-center gap-3" aria-label="NYX home">
             <Mark />
