@@ -11,8 +11,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.rules.suitability_rules import BANDS, MISSING_WEIGHT_LIMIT, WEIGHT_RATIONALE
-from app.schemas.analysis import AiStatusPayload
+from app.rules.suitability_rules import BANDS, MISSING_WEIGHT_LIMIT, RULE_PACK_VERSION, WEIGHT_RATIONALE
+from app.schemas.analysis import AiStatusPayload, AnalysisOptions
 from app.schemas.requirements import ApplicationRequirements
 from app.schemas.common import (
     SCHEMA_VERSION,
@@ -40,7 +40,6 @@ from app.rules.requirement_rules import (
     SESSIONS_PER_USER_BY_TYPE,
 )
 from app.services.cloud_catalog import get_catalog
-from app.services.pipeline import RULE_PACK_VERSION
 from app.services.templates import catalogue_version, load_templates
 
 router = APIRouter(tags=["meta"])
@@ -139,28 +138,33 @@ def meta() -> dict[str, object]:
     }
 
 
-def _length_bounds(field_name: str) -> tuple[int | None, int | None]:
-    """Min and max length of an `ApplicationRequirements` field, read from the schema itself."""
+def _bounds(model: type[BaseModel], field_name: str) -> tuple[int | None, int | None]:
+    """Lower and upper bound of a model field, read from its pydantic constraints."""
     lower: int | None = None
     upper: int | None = None
-    for constraint in ApplicationRequirements.model_fields[field_name].metadata:
-        lower = getattr(constraint, "min_length", lower)
-        upper = getattr(constraint, "max_length", upper)
+    for constraint in model.model_fields[field_name].metadata:
+        lower = getattr(constraint, "min_length", getattr(constraint, "ge", lower))
+        upper = getattr(constraint, "max_length", getattr(constraint, "le", upper))
     return lower, upper
 
 
 def input_limits() -> dict[str, object]:
-    """Input limits the API enforces, derived from the schema so the UI cannot drift."""
-    name_min, name_max = _length_bounds("name")
-    description_min, description_max = _length_bounds("description")
-    _, notes_max = _length_bounds("additional_requirements")
+    """Input limits the API enforces, read from the schema so the UI cannot drift from it."""
+    name_min, name_max = _bounds(ApplicationRequirements, "name")
+    description_min, description_max = _bounds(ApplicationRequirements, "description")
+    _, notes_max = _bounds(ApplicationRequirements, "additional_requirements")
+    ops_min, ops_max = _bounds(AnalysisOptions, "max_operations_per_view")
     return {
         "name_min_chars": name_min,
         "name_max_chars": name_max,
         "description_min_chars": description_min,
         "description_max_chars": description_max,
         "additional_requirements_max_chars": notes_max,
-        "max_operations_per_view": {"min": 6, "max": 24, "default": 14},
+        "max_operations_per_view": {
+            "min": ops_min,
+            "max": ops_max,
+            "default": AnalysisOptions.model_fields["max_operations_per_view"].default,
+        },
     }
 
 
