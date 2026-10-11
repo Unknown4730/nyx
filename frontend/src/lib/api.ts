@@ -7,7 +7,6 @@
  * UI can distinguish "the engine rejected my input" from "the service is down".
  */
 import type {
-  AnalysisExportRequest,
   AnalysisRequest,
   AnalysisResult,
   HealthResponse,
@@ -16,28 +15,42 @@ import type {
   ProjectSummary,
   ProjectUpdateRequest,
 } from '@/types/analysis'
-import type { AiStatus, MetaPayload, ProjectStats } from '@/types/nyx'
+// `AnalysisExportRequest` is not emitted by the schema generator yet, so it lives
+// with the other hand-written contract types (see the approval request in the
+// Cycle 0a report).  Everything else here comes from the generated contract.
+import type { AiStatus, AnalysisExportRequest, ExportFormat, MetaPayload, ProjectStats } from '@/types/nyx'
 
 export const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ''
 
+/**
+ * One failure shape for the whole client, built from the NYX error envelope:
+ * `{ error: { code, message, details, retryable } }` (`backend/app/api/errors.py`).
+ */
 export class NyxApiError extends Error {
   readonly status: number
   readonly code: string
-  readonly detail: unknown
-  readonly requestId: string | null
+  /** Human-readable issues from `error.details`; empty when the API sent none. */
+  readonly details: string[]
+  /** `error.retryable`: the API says attempting the request again may succeed. */
+  readonly retryable: boolean
 
-  constructor(init: { status: number; code: string; message: string; detail?: unknown; requestId?: string | null }) {
+  constructor(init: { status: number; code: string; message: string; details?: string[]; retryable?: boolean }) {
     super(init.message)
     this.name = 'NyxApiError'
     this.status = init.status
     this.code = init.code
-    this.detail = init.detail
-    this.requestId = init.requestId ?? null
+    this.details = init.details ?? []
+    this.retryable = init.retryable ?? false
   }
 
   /** 4xx means the user can fix it; 5xx/network means the service must be checked. */
   get isClientError(): boolean {
     return this.status >= 400 && this.status < 500
+  }
+
+  /** True when the API supplied at least one readable detail (usually validation). */
+  get hasDetails(): boolean {
+    return this.details.length > 0
   }
 }
 
@@ -69,29 +82,23 @@ async function request<T>(path: string, init: Init = {}): Promise<T> {
 
   const contentType = response.headers.get('content-type') ?? ''
   if (!response.ok) {
-    let code = 'http_error'
-    let message = `The API responded with ${response.status}.`
-    let detail: unknown = null
-    let requestId: string | null = response.headers.get('x-request-id')
+    let parsed: ParsedApiError | null = null
     if (contentType.includes('json')) {
-      const body = (await response.json().catch(() => null)) as
-        | { error?: { code?: string; message?: string; detail?: unknown; request_id?: string } }
-        | { detail?: unknown }
-        | null
-      const wrapped = (body as { error?: Record<string, unknown> } | null)?.error
-      if (wrapped) {
-        code = String(wrapped.code ?? code)
-        message = String(wrapped.message ?? message)
-        detail = wrapped.detail
-        requestId = (wrapped.request_id as string) ?? requestId
-      } else if ((body as { detail?: unknown } | null)?.detail !== undefined) {
-        detail = (body as { detail: unknown }).detail
-        message = typeof detail === 'string' ? detail : fastapiMessage(detail) ?? message
-      }
+      parsed = readErrorEnvelope(await response.json().catch(() => null))
     } else {
-      message = (await response.text().catch(() => '')).slice(0, 240) || message
+      // A proxy or gateway error page: keep one short readable line, never HTML.
+      const text = (await response.text().catch(() => '')).trim()
+      if (text && !text.startsWith('<')) {
+        parsed = { code: 'http_error', message: text.slice(0, 240), details: [], retryable: false }
+      }
     }
-    throw new NyxApiError({ status: response.status, code, message, detail, requestId })
+    throw new NyxApiError({
+      status: response.status,
+      code: parsed?.code ?? 'http_error',
+      message: parsed?.message ?? `The API responded with ${response.status}.`,
+      details: parsed?.details,
+      retryable: parsed?.retryable,
+    })
   }
 
   if (response.status === 204 || contentType.includes('json') === false) {
@@ -100,15 +107,91 @@ async function request<T>(path: string, init: Init = {}): Promise<T> {
   return (await response.json()) as T
 }
 
-/** FastAPI's validation errors arrive as `detail: [{loc, msg, type}]`. */
-function fastapiMessage(detail: unknown): string | null {
-  if (!Array.isArray(detail) || detail.length === 0) return null
-  const parts = detail.map((item) => {
-    const entry = item as { loc?: (string | number)[]; msg?: string }
-    const where = (entry.loc ?? []).filter((segment) => segment !== 'body').join('.')
-    return where ? `${where}: ${entry.msg ?? 'invalid'}` : (entry.msg ?? 'invalid value')
-  })
-  return `The API rejected the request — ${parts.join('; ')}`
+/** The parts of the NYX error envelope this client reads. */
+interface ParsedApiError {
+  code: string
+  message: string
+  details: string[]
+  retryable: boolean
+}
+
+/**
+ * `error.details` is `string[]` in the NYX envelope.  FastAPI-style `{loc, msg}`
+ * entries are still flattened so a proxy or an older build cannot crash the UI.
+ */
+function toDetailStrings(value: unknown): string[] {
+  if (typeof value === 'string') return value.trim() ? [value.trim()] : []
+  if (!Array.isArray(value)) return []
+  const out: string[] = []
+  for (const item of value) {
+    if (typeof item === 'string') {
+      if (item.trim()) out.push(item.trim())
+      continue
+    }
+    const entry = item as { loc?: (string | number)[]; msg?: string } | null
+    const where = (entry?.loc ?? []).filter((segment) => segment !== 'body').join('.')
+    const message = entry?.msg ?? 'invalid value'
+    out.push(where ? `${where}: ${message}` : message)
+  }
+  return out
+}
+
+/**
+ * Read the error envelope produced by `backend/app/api/errors.py`:
+ *
+ *     { "error": { "code": ..., "message": ..., "details": string[], "retryable": bool } }
+ *
+ * Every NYX failure — validation, not-found, unexpected — uses this shape, so the
+ * readable, field-scoped messages are in `error.details`.  A bare FastAPI
+ * `{ "detail": ... }` body is understood as a fallback, and anything else returns
+ * `null` instead of throwing.
+ */
+function readErrorEnvelope(body: unknown): ParsedApiError | null {
+  if (!body || typeof body !== 'object') return null
+
+  const wrapped = (body as { error?: unknown }).error
+  if (wrapped && typeof wrapped === 'object') {
+    const envelope = wrapped as { code?: unknown; message?: unknown; details?: unknown; retryable?: unknown }
+    return {
+      code: typeof envelope.code === 'string' && envelope.code ? envelope.code : 'http_error',
+      message:
+        typeof envelope.message === 'string' && envelope.message
+          ? envelope.message
+          : 'The API reported an error without a message.',
+      details: toDetailStrings(envelope.details),
+      retryable: envelope.retryable === true,
+    }
+  }
+
+  const bare = (body as { detail?: unknown }).detail
+  if (bare === undefined) return null
+  const details = toDetailStrings(bare)
+  return {
+    code: 'http_error',
+    message: typeof bare === 'string' && bare ? bare : (details[0] ?? 'The request was rejected.'),
+    details,
+    retryable: false,
+  }
+}
+
+/** Field paths in `details` look like `requirements.expected_users` or `options.providers.0`. */
+const FIELD_PATH = /^[A-Za-z0-9_.[\]]+$/
+
+/**
+ * Split `"<field path>: <message>"` details into a field → message map so a form
+ * can render each message next to its control.  Entries without a field path (such
+ * as the trailing "…and N further…" summary) are left on `NyxApiError.details`.
+ */
+export function fieldErrorMap(details: readonly string[]): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const entry of details) {
+    const separator = entry.indexOf(': ')
+    if (separator <= 0) continue
+    const field = entry.slice(0, separator).trim()
+    const message = entry.slice(separator + 2).trim()
+    if (message && FIELD_PATH.test(field) && !(field in map)) map[field] = message
+  }
+  return map
 }
 
 const json = { 'Content-Type': 'application/json' }
@@ -126,11 +209,14 @@ export const api = {
       timeoutMs: 60_000,
     }),
 
+  /** `POST /api/analyze/export` renders the report inline and returns it directly. */
   exportResult: (payload: AnalysisExportRequest) =>
-    request<{ format: string; filename: string; content: string; export: Record<string, unknown> }>(
-      '/api/analyze/export',
-      { method: 'POST', headers: json, body: JSON.stringify(payload), timeoutMs: 60_000 },
-    ),
+    request<{ format: ExportFormat; filename: string; content: string }>('/api/analyze/export', {
+      method: 'POST',
+      headers: json,
+      body: JSON.stringify(payload),
+      timeoutMs: 60_000,
+    }),
 
   listProjects: (limit = 50, offset = 0) =>
     request<ProjectSummary[]>(`/api/projects?limit=${limit}&offset=${offset}`),
