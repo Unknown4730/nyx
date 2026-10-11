@@ -1,6 +1,6 @@
 """NYX serverless suitability rule pack.
 
-Methodology (also documented in docs/PROJECT_REPORT.md):
+Methodology (also documented in docs/METHODOLOGY.md):
 
     contribution_i = weight_i * impact_i                 impact_i in [-1, +1]
     score          = 100 * (0.5 + 0.5 * sum(contribution_i))
@@ -788,9 +788,18 @@ def evaluate_component(
 
 
 def component_score_and_outcome(factors: list[FactorResult]) -> tuple[float, SuitabilityOutcome, list[str]]:
-    score, missing_weight, missing_ids = score_from_factors(factors)
-    if missing_weight >= 0.34:
-        return score, SuitabilityOutcome.FURTHER_ASSESSMENT, missing_ids
+    """Score one component and report which of its factors lacked evidence.
+
+    Component verdicts are always the score band.  An earlier revision also
+    overrode the band to FURTHER_ASSESSMENT once the missing weight reached 0.34.
+    That branch could never fire: the only component factor that can lack evidence
+    is `duration` (weight 0.26, see COMPONENT_FACTOR_WEIGHTS), so the override was
+    removed rather than lowered.  Workload-level gaps still decide whether the
+    overall verdict is provisional (MISSING_WEIGHT_LIMIT), and component gaps are
+    listed in `missing_inputs` so they stay visible.  Tests in
+    test_suitability_regression.py pin this decision.
+    """
+    score, _missing_weight, missing_ids = score_from_factors(factors)
     return score, band_for(score), missing_ids
 
 

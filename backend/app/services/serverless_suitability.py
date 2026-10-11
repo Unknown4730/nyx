@@ -216,7 +216,13 @@ class SuitabilityService:
 
     @staticmethod
     def _spike_factor(signals: RequirementSignals) -> float:
-        """Peak/average factor, derived from stated figures when possible."""
+        """Peak/average ratio used by the component utilisation factor.
+
+        Derived from stated figures (monthly requests and peak requests per minute)
+        when both are present.  Otherwise it returns the documented 1.35 default,
+        which the caller reports as an assumption (`spike_is_assumed`) rather than
+        as evidence.
+        """
         if signals.monthly_requests and signals.peak_requests_per_minute:
             average = signals.monthly_requests / (26 * 24 * 60)
             if average > 0:

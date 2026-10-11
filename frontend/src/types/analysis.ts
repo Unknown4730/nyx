@@ -10,7 +10,13 @@
 
 export const SCHEMA_VERSION = "nyx.analysis/1" as const
 
-/** Generated 2026-10-10 from `app/schemas`. */
+/** Generated 2026-10-11 from `app/schemas`. */
+export interface AnalysisExportRequest {
+  requirements: ApplicationRequirements;
+  options?: AnalysisOptions;
+  format?: string;
+}
+
 export interface ApplicationRequirements {
   name: string;
   description: string;

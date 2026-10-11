@@ -1,0 +1,819 @@
+{
+  "version": "2026.10",
+  "disclaimer": "Service identity catalogue for architecture recommendations only. This is not a pricing file: it contains no prices, quotas or SLAs. Names, URLs, limits and region availability must be re-verified against the provider documentation before any real implementation.",
+  "source_note": "Entries were compiled by the NYX maintainers from public provider product pages (2026.10 snapshot). Limitations are summary notes, not exhaustive.",
+  "services": {
+    "aws.alb": {
+      "provider": "aws",
+      "name": "Application Load Balancer",
+      "url": "https://aws.amazon.com/elasticloadbalancing/application-load-balancer/",
+      "category": "networking",
+      "serverless_class": "managed",
+      "limitations": [
+        "Hourly plus LCU charges; not scale-to-zero."
+      ]
+    },
+    "aws.api_gateway": {
+      "provider": "aws",
+      "name": "Amazon API Gateway",
+      "url": "https://aws.amazon.com/api-gateway/",
+      "category": "api",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Per-request pricing; WebSocket and REST APIs have different limits.",
+        "Request payload and integration timeout limits apply."
+      ]
+    },
+    "aws.backup": {
+      "provider": "aws",
+      "name": "AWS Backup",
+      "url": "https://aws.amazon.com/backup/",
+      "category": "operations",
+      "serverless_class": "managed",
+      "limitations": [
+        "Policy coverage depends on supported resource types."
+      ]
+    },
+    "aws.batch": {
+      "provider": "aws",
+      "name": "AWS Batch",
+      "url": "https://aws.amazon.com/batch/",
+      "category": "compute",
+      "serverless_class": "managed",
+      "limitations": [
+        "Runs on managed EC2 or Fargate capacity; job queues need configuration."
+      ]
+    },
+    "aws.beanstalk": {
+      "provider": "aws",
+      "name": "AWS Elastic Beanstalk",
+      "url": "https://aws.amazon.com/elasticbeanstalk/",
+      "category": "compute",
+      "serverless_class": "serverful",
+      "limitations": [
+        "Provisions EC2 instances underneath; instances are billed while running."
+      ]
+    },
+    "aws.cloudfront": {
+      "provider": "aws",
+      "name": "Amazon CloudFront",
+      "url": "https://aws.amazon.com/cloudfront/",
+      "category": "edge",
+      "serverless_class": "managed",
+      "limitations": [
+        "Requires an origin such as S3 or a load balancer."
+      ]
+    },
+    "aws.cloudwatch": {
+      "provider": "aws",
+      "name": "Amazon CloudWatch",
+      "url": "https://aws.amazon.com/cloudwatch/",
+      "category": "operations",
+      "serverless_class": "managed",
+      "limitations": [
+        "Custom metrics and log ingestion are billed separately."
+      ]
+    },
+    "aws.codeartifact": {
+      "provider": "aws",
+      "name": "AWS CodeArtifact",
+      "url": "https://aws.amazon.com/codeartifact/",
+      "category": "delivery",
+      "serverless_class": "managed",
+      "limitations": [
+        "Stores packages and artefacts; it is not a CI runner."
+      ]
+    },
+    "aws.cognito": {
+      "provider": "aws",
+      "name": "Amazon Cognito",
+      "url": "https://aws.amazon.com/cognito/",
+      "category": "security",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Customer-identity focus; workforce federation has separate configuration."
+      ]
+    },
+    "aws.dynamodb": {
+      "provider": "aws",
+      "name": "Amazon DynamoDB",
+      "url": "https://aws.amazon.com/dynamodb/",
+      "category": "database",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Access patterns must be designed up front; limited ad-hoc querying."
+      ]
+    },
+    "aws.ebs": {
+      "provider": "aws",
+      "name": "Amazon Elastic Block Store",
+      "url": "https://aws.amazon.com/ebs/",
+      "category": "storage",
+      "serverless_class": "serverful",
+      "limitations": [
+        "Attached to a single instance in a single Availability Zone per volume."
+      ]
+    },
+    "aws.ec2": {
+      "provider": "aws",
+      "name": "Amazon EC2",
+      "url": "https://aws.amazon.com/ec2/",
+      "category": "compute",
+      "serverless_class": "serverful",
+      "limitations": [
+        "Operating system patching and capacity management remain customer responsibilities."
+      ]
+    },
+    "aws.ecs_fargate": {
+      "provider": "aws",
+      "name": "Amazon ECS on AWS Fargate",
+      "url": "https://aws.amazon.com/fargate/",
+      "category": "compute",
+      "serverless_class": "managed",
+      "limitations": [
+        "Task-level vCPU and memory sizing; minimum billed duration per task."
+      ]
+    },
+    "aws.elasticache": {
+      "provider": "aws",
+      "name": "Amazon ElastiCache",
+      "url": "https://aws.amazon.com/elasticache/",
+      "category": "cache",
+      "serverless_class": "managed",
+      "limitations": [
+        "Node or cluster sizing is required; Serverless tier has a minimum footprint."
+      ]
+    },
+    "aws.eventbridge_scheduler": {
+      "provider": "aws",
+      "name": "Amazon EventBridge Scheduler",
+      "url": "https://aws.amazon.com/eventbridge/scheduler/",
+      "category": "scheduling",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Schedule invocation targets are limited to supported AWS services and HTTP endpoints."
+      ]
+    },
+    "aws.kinesis": {
+      "provider": "aws",
+      "name": "Amazon Kinesis Data Streams",
+      "url": "https://aws.amazon.com/kinesis/data-streams/",
+      "category": "streaming",
+      "serverless_class": "managed",
+      "limitations": [
+        "Shard or on-demand capacity modes change the cost shape."
+      ]
+    },
+    "aws.lambda": {
+      "provider": "aws",
+      "name": "AWS Lambda",
+      "url": "https://aws.amazon.com/lambda/",
+      "category": "compute",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Maximum execution time of 15 minutes per invocation.",
+        "Cold starts can affect latency-sensitive paths."
+      ]
+    },
+    "aws.lambda_powertools_logging": {
+      "provider": "aws",
+      "name": "AWS Lambda Powertools (structured logging)",
+      "url": "https://docs.powertools.aws.dev/lambda/python/latest/core/logger/",
+      "category": "operations",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "A library rather than a managed service; logs still land in CloudWatch Logs."
+      ]
+    },
+    "aws.opensearch": {
+      "provider": "aws",
+      "name": "Amazon OpenSearch Service",
+      "url": "https://aws.amazon.com/opensearch-service/",
+      "category": "search",
+      "serverless_class": "managed",
+      "limitations": [
+        "Domain sizing and shard management remain operator tasks."
+      ]
+    },
+    "aws.rds": {
+      "provider": "aws",
+      "name": "Amazon RDS",
+      "url": "https://aws.amazon.com/rds/",
+      "category": "database",
+      "serverless_class": "managed",
+      "limitations": [
+        "Instance sizing is required; RDS Proxy is often needed for connection-heavy workloads."
+      ]
+    },
+    "aws.redshift": {
+      "provider": "aws",
+      "name": "Amazon Redshift",
+      "url": "https://aws.amazon.com/redshift/",
+      "category": "analytics",
+      "serverless_class": "managed",
+      "limitations": [
+        "Cluster or serverless capacity planning is needed for predictable performance."
+      ]
+    },
+    "aws.route53": {
+      "provider": "aws",
+      "name": "Amazon Route 53",
+      "url": "https://aws.amazon.com/route53/",
+      "category": "networking",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Health checks and routing policies are billed per resource."
+      ]
+    },
+    "aws.s3": {
+      "provider": "aws",
+      "name": "Amazon S3",
+      "url": "https://aws.amazon.com/s3/",
+      "category": "storage",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Object-based; not a POSIX filesystem."
+      ]
+    },
+    "aws.secrets_manager": {
+      "provider": "aws",
+      "name": "AWS Secrets Manager",
+      "url": "https://aws.amazon.com/secrets-manager/",
+      "category": "security",
+      "serverless_class": "managed",
+      "limitations": [
+        "Per-secret and per-API-call charges; rotation needs a rotation function."
+      ]
+    },
+    "aws.ses": {
+      "provider": "aws",
+      "name": "Amazon Simple Email Service",
+      "url": "https://aws.amazon.com/ses/",
+      "category": "notification",
+      "serverless_class": "managed",
+      "limitations": [
+        "New accounts start in a sandbox with sending limits."
+      ]
+    },
+    "aws.sns": {
+      "provider": "aws",
+      "name": "Amazon Simple Notification Service",
+      "url": "https://aws.amazon.com/sns/",
+      "category": "messaging",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Fan-out delivery; no durable consumer-side buffering by itself."
+      ]
+    },
+    "aws.sqs": {
+      "provider": "aws",
+      "name": "Amazon Simple Queue Service",
+      "url": "https://aws.amazon.com/sqs/",
+      "category": "messaging",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Standard queues are at-least-once with no strict ordering; FIFO queues have throughput limits."
+      ]
+    },
+    "aws.timestream": {
+      "provider": "aws",
+      "name": "Amazon Timestream",
+      "url": "https://aws.amazon.com/timestream/",
+      "category": "database",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Purpose-built time-series model; query language differs from SQL databases."
+      ]
+    },
+    "azure.ai_search": {
+      "provider": "azure",
+      "name": "Azure AI Search",
+      "url": "https://azure.microsoft.com/products/ai-services/ai-search",
+      "category": "search",
+      "serverless_class": "managed",
+      "limitations": [
+        "Search units are provisioned and billed while the service exists."
+      ]
+    },
+    "azure.api_management": {
+      "provider": "azure",
+      "name": "Azure API Management",
+      "url": "https://azure.microsoft.com/products/api-management",
+      "category": "api",
+      "serverless_class": "managed",
+      "limitations": [
+        "Dedicated tiers run always-on units; the consumption tier is the only scale-to-zero option."
+      ]
+    },
+    "azure.app_service": {
+      "provider": "azure",
+      "name": "Azure App Service",
+      "url": "https://azure.microsoft.com/products/app-service",
+      "category": "compute",
+      "serverless_class": "managed",
+      "limitations": [
+        "App Service plans are billed while allocated, even when idle."
+      ]
+    },
+    "azure.application_gateway": {
+      "provider": "azure",
+      "name": "Azure Application Gateway",
+      "url": "https://azure.microsoft.com/products/application-gateway",
+      "category": "networking",
+      "serverless_class": "managed",
+      "limitations": [
+        "Layer 7 only; capacity units are billed continuously."
+      ]
+    },
+    "azure.azure_dns": {
+      "provider": "azure",
+      "name": "Azure DNS",
+      "url": "https://azure.microsoft.com/products/dns",
+      "category": "networking",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Zones and query volume are billed."
+      ]
+    },
+    "azure.backup": {
+      "provider": "azure",
+      "name": "Azure Backup",
+      "url": "https://azure.microsoft.com/products/backup",
+      "category": "operations",
+      "serverless_class": "managed",
+      "limitations": [
+        "Vault-based policies; retention and restore costs vary by workload."
+      ]
+    },
+    "azure.batch": {
+      "provider": "azure",
+      "name": "Azure Batch",
+      "url": "https://azure.microsoft.com/products/batch",
+      "category": "compute",
+      "serverless_class": "managed",
+      "limitations": [
+        "Pools of VMs must be sized and managed by the job scheduler."
+      ]
+    },
+    "azure.blob_storage": {
+      "provider": "azure",
+      "name": "Azure Blob Storage",
+      "url": "https://azure.microsoft.com/products/storage/blobs",
+      "category": "storage",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Object-based; hierarchical namespace is an optional feature."
+      ]
+    },
+    "azure.cache_redis": {
+      "provider": "azure",
+      "name": "Azure Cache for Redis",
+      "url": "https://azure.microsoft.com/products/cache",
+      "category": "cache",
+      "serverless_class": "managed",
+      "limitations": [
+        "Tier and size are fixed per cache instance."
+      ]
+    },
+    "azure.container_apps": {
+      "provider": "azure",
+      "name": "Azure Container Apps",
+      "url": "https://azure.microsoft.com/products/container-apps",
+      "category": "compute",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Consumption plan can scale to zero; dedicated plans are always allocated."
+      ]
+    },
+    "azure.cosmos_db": {
+      "provider": "azure",
+      "name": "Azure Cosmos DB",
+      "url": "https://azure.microsoft.com/products/cosmos-db",
+      "category": "database",
+      "serverless_class": "managed",
+      "limitations": [
+        "Throughput (RU/s) provisioning or serverless mode must be chosen per account."
+      ]
+    },
+    "azure.data_explorer": {
+      "provider": "azure",
+      "name": "Azure Data Explorer",
+      "url": "https://azure.microsoft.com/products/data-explorer",
+      "category": "analytics",
+      "serverless_class": "managed",
+      "limitations": [
+        "Cluster sizing is required; optimised for log and telemetry analytics."
+      ]
+    },
+    "azure.devops_pipelines": {
+      "provider": "azure",
+      "name": "Azure Pipelines",
+      "url": "https://azure.microsoft.com/products/devops/pipelines",
+      "category": "delivery",
+      "serverless_class": "managed",
+      "limitations": [
+        "Hosted agent minutes are metered; self-hosted agents are customer-managed."
+      ]
+    },
+    "azure.entra_id": {
+      "provider": "azure",
+      "name": "Microsoft Entra ID",
+      "url": "https://www.microsoft.com/security/business/identity-access/microsoft-entra-id",
+      "category": "security",
+      "serverless_class": "managed",
+      "limitations": [
+        "Workforce-first product; customer identity uses Entra External ID."
+      ]
+    },
+    "azure.event_hubs": {
+      "provider": "azure",
+      "name": "Azure Event Hubs",
+      "url": "https://azure.microsoft.com/products/event-hubs",
+      "category": "streaming",
+      "serverless_class": "managed",
+      "limitations": [
+        "Throughput units or capacity modes are billed while provisioned."
+      ]
+    },
+    "azure.fabric_synapse": {
+      "provider": "azure",
+      "name": "Microsoft Fabric / Azure Synapse Analytics",
+      "url": "https://azure.microsoft.com/products/synapse-analytics",
+      "category": "analytics",
+      "serverless_class": "managed",
+      "limitations": [
+        "Capacity-based model; product choice depends on the analytics platform strategy."
+      ]
+    },
+    "azure.front_door": {
+      "provider": "azure",
+      "name": "Azure Front Door",
+      "url": "https://azure.microsoft.com/products/frontdoor",
+      "category": "edge",
+      "serverless_class": "managed",
+      "limitations": [
+        "Tiers differ in WAF and private-link support."
+      ]
+    },
+    "azure.functions": {
+      "provider": "azure",
+      "name": "Azure Functions",
+      "url": "https://azure.microsoft.com/products/functions",
+      "category": "compute",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Consumption plan default timeout is 5 minutes; Premium plan removes cold-start limits."
+      ]
+    },
+    "azure.key_vault": {
+      "provider": "azure",
+      "name": "Azure Key Vault",
+      "url": "https://azure.microsoft.com/products/key-vault",
+      "category": "security",
+      "serverless_class": "managed",
+      "limitations": [
+        "Operation-based charges; managed HSM is a separate tier."
+      ]
+    },
+    "azure.logic_apps": {
+      "provider": "azure",
+      "name": "Azure Logic Apps",
+      "url": "https://azure.microsoft.com/products/logic-apps",
+      "category": "scheduling",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Workflow designer model; recurrence triggers are the scheduling option."
+      ]
+    },
+    "azure.managed_disks": {
+      "provider": "azure",
+      "name": "Azure Managed Disks",
+      "url": "https://azure.microsoft.com/products/managed-disks",
+      "category": "storage",
+      "serverless_class": "serverful",
+      "limitations": [
+        "Disks attach to Azure virtual machines only."
+      ]
+    },
+    "azure.monitor": {
+      "provider": "azure",
+      "name": "Azure Monitor",
+      "url": "https://azure.microsoft.com/products/monitor",
+      "category": "operations",
+      "serverless_class": "managed",
+      "limitations": [
+        "Log Analytics ingestion is the main cost driver."
+      ]
+    },
+    "azure.notification_hubs": {
+      "provider": "azure",
+      "name": "Azure Notification Hubs",
+      "url": "https://azure.microsoft.com/products/notification-hubs",
+      "category": "notification",
+      "serverless_class": "managed",
+      "limitations": [
+        "Push-focused; email delivery needs Azure Communication Services."
+      ]
+    },
+    "azure.service_bus": {
+      "provider": "azure",
+      "name": "Azure Service Bus",
+      "url": "https://azure.microsoft.com/products/service-bus",
+      "category": "messaging",
+      "serverless_class": "managed",
+      "limitations": [
+        "Premium tier needed for dedicated capacity and some enterprise features."
+      ]
+    },
+    "azure.sql_database": {
+      "provider": "azure",
+      "name": "Azure SQL Database",
+      "url": "https://azure.microsoft.com/products/azure-sql/database",
+      "category": "database",
+      "serverless_class": "managed",
+      "limitations": [
+        "DTU or vCore purchasing model; serverless tier can auto-pause."
+      ]
+    },
+    "azure.virtual_machines": {
+      "provider": "azure",
+      "name": "Azure Virtual Machines",
+      "url": "https://azure.microsoft.com/products/virtual-machines",
+      "category": "compute",
+      "serverless_class": "serverful",
+      "limitations": [
+        "Operating system patching and scaling remain customer responsibilities."
+      ]
+    },
+    "gcp.api_gateway": {
+      "provider": "gcp",
+      "name": "API Gateway (Google Cloud)",
+      "url": "https://cloud.google.com/api-gateway",
+      "category": "api",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Lighter policy surface than Apigee; governance-heavy programs may need Apigee."
+      ]
+    },
+    "gcp.backup_dr": {
+      "provider": "gcp",
+      "name": "Backup and DR Service",
+      "url": "https://cloud.google.com/backup-disaster-recovery",
+      "category": "operations",
+      "serverless_class": "managed",
+      "limitations": [
+        "Coverage depends on the protected workload type."
+      ]
+    },
+    "gcp.bigquery": {
+      "provider": "gcp",
+      "name": "BigQuery",
+      "url": "https://cloud.google.com/bigquery",
+      "category": "analytics",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "On-demand pricing per bytes scanned; partitioning controls cost."
+      ]
+    },
+    "gcp.cloud_build": {
+      "provider": "gcp",
+      "name": "Cloud Build",
+      "url": "https://cloud.google.com/build",
+      "category": "delivery",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Build minutes are billed; private pools change the network model."
+      ]
+    },
+    "gcp.cloud_cdn": {
+      "provider": "gcp",
+      "name": "Cloud CDN",
+      "url": "https://cloud.google.com/cdn",
+      "category": "edge",
+      "serverless_class": "managed",
+      "limitations": [
+        "Requires an external HTTP(S) load balancer as the origin path."
+      ]
+    },
+    "gcp.cloud_dns": {
+      "provider": "gcp",
+      "name": "Cloud DNS",
+      "url": "https://cloud.google.com/dns",
+      "category": "networking",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Zones and query volume are billed."
+      ]
+    },
+    "gcp.cloud_load_balancing": {
+      "provider": "gcp",
+      "name": "Cloud Load Balancing",
+      "url": "https://cloud.google.com/load-balancing",
+      "category": "networking",
+      "serverless_class": "managed",
+      "limitations": [
+        "Global forwarding rules differ from per-region load balancer instances."
+      ]
+    },
+    "gcp.cloud_logging": {
+      "provider": "gcp",
+      "name": "Cloud Logging",
+      "url": "https://cloud.google.com/logging",
+      "category": "operations",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Ingestion above the free allowance is billed; retention tiers differ."
+      ]
+    },
+    "gcp.cloud_monitoring": {
+      "provider": "gcp",
+      "name": "Cloud Monitoring",
+      "url": "https://cloud.google.com/monitoring",
+      "category": "operations",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Metric volume and alerting policies drive cost."
+      ]
+    },
+    "gcp.cloud_run": {
+      "provider": "gcp",
+      "name": "Cloud Run",
+      "url": "https://cloud.google.com/run",
+      "category": "compute",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Request timeout limits apply; container image must follow the Cloud Run contract."
+      ]
+    },
+    "gcp.cloud_run_functions": {
+      "provider": "gcp",
+      "name": "Cloud Run functions",
+      "url": "https://cloud.google.com/functions",
+      "category": "compute",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Built on Cloud Run; supports event-triggered and HTTP entry points."
+      ]
+    },
+    "gcp.cloud_run_jobs": {
+      "provider": "gcp",
+      "name": "Cloud Run jobs",
+      "url": "https://cloud.google.com/run/docs/create-jobs",
+      "category": "compute",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Run-to-completion tasks; not a long-lived service."
+      ]
+    },
+    "gcp.cloud_scheduler": {
+      "provider": "gcp",
+      "name": "Cloud Scheduler",
+      "url": "https://cloud.google.com/scheduler",
+      "category": "scheduling",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Cron-style triggers; per-job pricing applies."
+      ]
+    },
+    "gcp.cloud_sql": {
+      "provider": "gcp",
+      "name": "Cloud SQL",
+      "url": "https://cloud.google.com/sql",
+      "category": "database",
+      "serverless_class": "managed",
+      "limitations": [
+        "Instance sizing and maintenance windows must be configured."
+      ]
+    },
+    "gcp.cloud_storage": {
+      "provider": "gcp",
+      "name": "Cloud Storage",
+      "url": "https://cloud.google.com/storage",
+      "category": "storage",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Object-based; storage classes change retrieval cost."
+      ]
+    },
+    "gcp.cloud_tasks": {
+      "provider": "gcp",
+      "name": "Cloud Tasks",
+      "url": "https://cloud.google.com/tasks",
+      "category": "messaging",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Task-oriented queue with dispatch rate limits; not a high-throughput event bus."
+      ]
+    },
+    "gcp.compute_engine": {
+      "provider": "gcp",
+      "name": "Compute Engine",
+      "url": "https://cloud.google.com/compute",
+      "category": "compute",
+      "serverless_class": "serverful",
+      "limitations": [
+        "Virtual machines require patching and capacity planning."
+      ]
+    },
+    "gcp.firebase_messaging": {
+      "provider": "gcp",
+      "name": "Firebase Cloud Messaging",
+      "url": "https://firebase.google.com/docs/cloud-messaging",
+      "category": "notification",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Push delivery only; email requires a separate service."
+      ]
+    },
+    "gcp.firestore": {
+      "provider": "gcp",
+      "name": "Firestore",
+      "url": "https://cloud.google.com/firestore",
+      "category": "database",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Query model is index-driven with no joins."
+      ]
+    },
+    "gcp.identity_platform": {
+      "provider": "gcp",
+      "name": "Identity Platform",
+      "url": "https://cloud.google.com/identity-platform",
+      "category": "security",
+      "serverless_class": "managed",
+      "limitations": [
+        "Customer identity; workforce identity uses Cloud Identity instead."
+      ]
+    },
+    "gcp.managed_prometheus": {
+      "provider": "gcp",
+      "name": "Google Cloud Managed Service for Prometheus",
+      "url": "https://cloud.google.com/stackdriver/docs/managed-prometheus",
+      "category": "operations",
+      "serverless_class": "managed",
+      "limitations": [
+        "Prometheus-compatible metrics; long-term analytics usually need another store."
+      ]
+    },
+    "gcp.memorystore": {
+      "provider": "gcp",
+      "name": "Memorystore for Redis",
+      "url": "https://cloud.google.com/memorystore",
+      "category": "cache",
+      "serverless_class": "managed",
+      "limitations": [
+        "Instance-based capacity; no scale-to-zero."
+      ]
+    },
+    "gcp.persistent_disk": {
+      "provider": "gcp",
+      "name": "Persistent Disk",
+      "url": "https://cloud.google.com/persistent-disk",
+      "category": "storage",
+      "serverless_class": "serverful",
+      "limitations": [
+        "Zonal or regional disks attached to Compute Engine instances."
+      ]
+    },
+    "gcp.pubsub": {
+      "provider": "gcp",
+      "name": "Pub/Sub",
+      "url": "https://cloud.google.com/pubsub",
+      "category": "messaging",
+      "serverless_class": "fully_serverless",
+      "limitations": [
+        "Topic and subscription model; ordering keys needed for ordered delivery."
+      ]
+    },
+    "gcp.secret_manager": {
+      "provider": "gcp",
+      "name": "Secret Manager",
+      "url": "https://cloud.google.com/secret-manager",
+      "category": "security",
+      "serverless_class": "managed",
+      "limitations": [
+        "Per-version and per-access-operation charges."
+      ]
+    },
+    "gcp.vertex_ai": {
+      "provider": "gcp",
+      "name": "Vertex AI",
+      "url": "https://cloud.google.com/vertex-ai",
+      "category": "ml",
+      "serverless_class": "managed",
+      "limitations": [
+        "Endpoints run on provisioned capacity unless batch prediction is used."
+      ]
+    },
+    "gcp.vertex_ai_search": {
+      "provider": "gcp",
+      "name": "Vertex AI Search",
+      "url": "https://cloud.google.com/enterprise-search",
+      "category": "search",
+      "serverless_class": "managed",
+      "limitations": [
+        "Managed search with less index-level control than self-managed engines."
+      ]
+    }
+  }
+}

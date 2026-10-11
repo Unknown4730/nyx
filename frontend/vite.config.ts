@@ -5,9 +5,10 @@ import { fileURLToPath, URL } from 'node:url'
 /**
  * NYX web client.
  *
- * `/api` is proxied to the FastAPI service during development so the browser
- * stays same-origin.  In production the built assets are served by the backend
- * itself (or nginx in the Docker image), which needs no proxy at all.
+ * `/api` is proxied to the FastAPI service during development so the browser stays
+ * same-origin.  The proxy runs on the Vite server, not in the browser, so the
+ * `127.0.0.1` target is correct.  In production the backend serves the built assets
+ * itself, so no proxy is needed.
  */
 export default defineConfig({
   plugins: [react()],
@@ -37,15 +38,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    chunkSizeWarningLimit: 900,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          flow: ['@xyflow/react'],
-          charts: ['recharts'],
-        },
-      },
-    },
+    chunkSizeWarningLimit: 600,
   },
   test: {
     environment: 'jsdom',

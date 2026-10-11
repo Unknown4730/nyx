@@ -416,14 +416,69 @@ MAPPINGS: dict[LogicalComponentType, MappingSpec] = {
     ),
 }
 
+ALLOWED_SERVERLESS_CLASSES = {"fully_serverless", "managed", "serverful"}
+
+
+class CatalogDataError(RuntimeError):
+    """The service catalogue file is missing, unreadable or structurally invalid."""
+
+
+def load_catalog_document(path: Path = CATALOG_PATH) -> dict[str, object]:
+    """Read and structurally validate `cloud_services.json`.
+
+    Raises `CatalogDataError` with an actionable message.  A missing or malformed
+    catalogue is never replaced by an empty one: every mapping would silently
+    disappear.
+    """
+    if not path.is_file():
+        raise CatalogDataError(
+            f"Required service catalogue not found at {path}. It is tracked in the repository "
+            "under backend/app/data/; restore it from version control."
+        )
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise CatalogDataError(f"Service catalogue {path} is not valid UTF-8 JSON: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise CatalogDataError(f"Service catalogue {path} must contain a JSON object at the top level.")
+    for key in ("version", "disclaimer", "services"):
+        if key not in raw:
+            raise CatalogDataError(f"Service catalogue {path} is missing the required key '{key}'.")
+    if not isinstance(raw["services"], dict) or not raw["services"]:
+        raise CatalogDataError(f"Service catalogue {path} has no 'services' entries.")
+    problems: list[str] = []
+    for key, entry in raw["services"].items():
+        if not isinstance(entry, dict):
+            problems.append(f"{key}: entry is not an object")
+            continue
+        provider = key.split(".")[0]
+        if key.count(".") != 1 or provider not in {"aws", "gcp", "azure"}:
+            problems.append(f"{key}: key must be '<aws|gcp|azure>.<service_key>'")
+        if entry.get("provider") != provider:
+            problems.append(f"{key}: 'provider' must be '{provider}'")
+        for field_name in ("name", "category"):
+            if not str(entry.get(field_name, "")).strip():
+                problems.append(f"{key}: '{field_name}' is required")
+        url = str(entry.get("url", ""))
+        if not url.startswith("https://"):
+            problems.append(f"{key}: 'url' must be an https link")
+        if entry.get("serverless_class") not in ALLOWED_SERVERLESS_CLASSES:
+            problems.append(f"{key}: 'serverless_class' must be one of {sorted(ALLOWED_SERVERLESS_CLASSES)}")
+        if not isinstance(entry.get("limitations", []), list):
+            problems.append(f"{key}: 'limitations' must be a list")
+    if problems:
+        raise CatalogDataError("Service catalogue is malformed: " + "; ".join(problems[:10]))
+    return raw
+
+
 class CloudCatalogService:
     """Reads the JSON service registry and resolves per-provider mappings."""
 
     def __init__(self, path: Path = CATALOG_PATH) -> None:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-        self.version: str = raw["version"]
-        self.disclaimer: str = raw["disclaimer"]
-        self.services: dict[str, dict[str, object]] = raw["services"]
+        raw = load_catalog_document(path)
+        self.version: str = str(raw["version"])
+        self.disclaimer: str = str(raw["disclaimer"])
+        self.services: dict[str, dict[str, object]] = raw["services"]  # type: ignore[assignment]
         self._validate()
 
     def _validate(self) -> None:
@@ -433,10 +488,10 @@ class CloudCatalogService:
                 if key not in self.services:
                     missing.append(f"{component_type.value} -> {key}")
         if missing:
-            raise RuntimeError("cloud_services.json is missing catalogue entries: " + ", ".join(missing))
+            raise CatalogDataError("cloud_services.json is missing catalogue entries: " + ", ".join(missing))
         unmapped = [item.value for item in LogicalComponentType if item not in MAPPINGS]
         if unmapped:
-            raise RuntimeError(f"Logical component types without a cloud mapping: {unmapped}")
+            raise CatalogDataError(f"Logical component types without a cloud mapping: {unmapped}")
 
     def service(self, key: str) -> dict[str, object]:
         return self.services[key]

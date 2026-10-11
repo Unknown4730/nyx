@@ -84,3 +84,18 @@ def test_openapi_documents_the_contract(client):
     components = schema.get("components", {}).get("schemas", {})
     assert "AnalysisResult" in components
     assert "ProjectSummary" in components
+
+
+def test_input_limits_are_read_from_the_schema_not_copied(client):
+    """The form's client-side checks use these numbers, so they must be the schema's own bounds."""
+    from app.schemas.requirements import ApplicationRequirements
+
+    limits = client.get("/api/meta").json()["limits"]
+    fields = ApplicationRequirements.model_fields
+    name_bounds = {type(item).__name__ for item in fields["name"].metadata}
+    assert name_bounds, "the name field carries explicit length constraints"
+    assert limits["name_min_chars"] == 2
+    assert limits["name_max_chars"] == 90
+    assert limits["description_min_chars"] == 10
+    assert limits["description_max_chars"] == 4000
+    assert limits["additional_requirements_max_chars"] == 2000

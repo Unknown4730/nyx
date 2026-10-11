@@ -11,8 +11,9 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
-from app.rules.suitability_rules import BANDS, WEIGHT_RATIONALE
+from app.rules.suitability_rules import BANDS, MISSING_WEIGHT_LIMIT, WEIGHT_RATIONALE
 from app.schemas.analysis import AiStatusPayload
+from app.schemas.requirements import ApplicationRequirements
 from app.schemas.common import (
     SCHEMA_VERSION,
     ApplicationType,
@@ -114,6 +115,7 @@ def meta() -> dict[str, object]:
                 for threshold, outcome in BANDS
             ],
             "weight_rationale": WEIGHT_RATIONALE,
+            "missing_weight_limit": MISSING_WEIGHT_LIMIT,
             "rule_pack_version": RULE_PACK_VERSION,
         },
         "derivation": {
@@ -133,12 +135,32 @@ def meta() -> dict[str, object]:
         },
         "catalog": catalog.summary(),
         "templates": load_template_payloads(),
-        "limits": {
-            "description_max_chars": 4000,
-            "name_max_chars": 90,
-            "additional_requirements_max_chars": 2000,
-            "max_operations_per_view": {"min": 6, "max": 24, "default": 14},
-        },
+        "limits": input_limits(),
+    }
+
+
+def _length_bounds(field_name: str) -> tuple[int | None, int | None]:
+    """Min and max length of an `ApplicationRequirements` field, read from the schema itself."""
+    lower: int | None = None
+    upper: int | None = None
+    for constraint in ApplicationRequirements.model_fields[field_name].metadata:
+        lower = getattr(constraint, "min_length", lower)
+        upper = getattr(constraint, "max_length", upper)
+    return lower, upper
+
+
+def input_limits() -> dict[str, object]:
+    """Input limits the API enforces, derived from the schema so the UI cannot drift."""
+    name_min, name_max = _length_bounds("name")
+    description_min, description_max = _length_bounds("description")
+    _, notes_max = _length_bounds("additional_requirements")
+    return {
+        "name_min_chars": name_min,
+        "name_max_chars": name_max,
+        "description_min_chars": description_min,
+        "description_max_chars": description_max,
+        "additional_requirements_max_chars": notes_max,
+        "max_operations_per_view": {"min": 6, "max": 24, "default": 14},
     }
 
 

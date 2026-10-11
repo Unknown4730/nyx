@@ -23,6 +23,7 @@ OUTPUT = REPO_ROOT / "frontend" / "src" / "types" / "analysis.ts"
 
 # Emitted as named exports; everything they reference is pulled in transitively.
 ROOT_MODELS = [
+    "AnalysisExportRequest",
     "ApplicationRequirements",
     "RequirementSignals",
     "Assumption",

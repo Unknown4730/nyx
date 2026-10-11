@@ -16,6 +16,16 @@ PROVIDER_LABEL = {
 }
 
 
+def _c(value: object) -> str:
+    """Make one value safe inside a Markdown table cell.
+
+    Whitespace is collapsed (a newline would end the row), backslashes are doubled
+    and pipes escaped so that user-supplied names cannot add or break columns.
+    """
+    text = " ".join(str(value).split())
+    return text.replace("\\", "\\\\").replace("|", "\\|")
+
+
 def to_json(result: AnalysisResult, *, indent: int = 2) -> str:
     payload = {"export": {"generator": "NYX", "kind": "analysis-result", "generated_at": _now()}, **result.to_json_dict()}
     return json.dumps(payload, indent=indent, ensure_ascii=False, sort_keys=False)
@@ -44,7 +54,7 @@ def to_markdown(result: AnalysisResult) -> str:
     add("| Requirement | Value | Source |")
     add("| --- | --- | --- |")
     for label, value, key in _requirement_rows(result):
-        add(f"| {label} | {value} | {key} |")
+        add(f"| {_c(label)} | {_c(value)} | {_c(key)} |")
     add("")
 
     add("## 2. Extracted workload characteristics")
@@ -84,7 +94,7 @@ def to_markdown(result: AnalysisResult) -> str:
     add("| --- | --- | --- | --- | --- | --- |")
     for factor in result.suitability.factors:
         evidence = "; ".join(factor.evidence) or "—"
-        add(f"| {factor.name} | {factor.weight:.2f} | {factor.impact:+.2f} | {factor.contribution:+.3f} | "
+        add(f"| {_c(factor.name)} | {factor.weight:.2f} | {factor.impact:+.2f} | {factor.contribution:+.3f} | "
             f"{factor.basis} | {evidence} |")
     add("")
     add(f"Method: {result.suitability.methodology.formula}")
@@ -95,7 +105,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| Component | Score | Outcome | Realization | Reason |")
         add("| --- | --- | --- | --- | --- |")
         for component in result.suitability.components:
-            add(f"| {component.component_label} | {component.score:.0f} | "
+            add(f"| {_c(component.component_label)} | {component.score:.0f} | "
                 f"{component.outcome.value.replace('_', ' ')} | `{component.recommendation.value}` | "
                 f"{component.recommendation_reason} |")
         add("")
@@ -113,7 +123,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| Component | Type | Deployment | Description |")
         add("| --- | --- | --- | --- |")
         for component in graph.components:
-            add(f"| {component.label} | `{component.type.value}` | `{component.deployment_target.value}` | "
+            add(f"| {_c(component.label)} | `{component.type.value}` | `{component.deployment_target.value}` | "
                 f"{component.description} |")
         add("")
         add("Connections:")
@@ -143,9 +153,9 @@ def to_markdown(result: AnalysisResult) -> str:
         def cell(mapping: object) -> str:
             if mapping is None:
                 return "—"
-            return getattr(mapping, "service_name", str(mapping))
+            return _c(getattr(mapping, "service_name", str(mapping)))
 
-        add(f"| {row.component_label} | {cell(row.aws)} | {cell(row.gcp)} | {cell(row.azure)} | "
+        add(f"| {_c(row.component_label)} | {_c(cell(row.aws))} | {_c(cell(row.gcp))} | {_c(cell(row.azure))} | "
             f"{'yes' if row.one_to_one else 'no'} |")
     add("")
     notable = [row for row in result.mapping_table if not row.one_to_one]
@@ -167,7 +177,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| ID | Severity | Certainty | Finding | Components |")
         add("| --- | --- | --- | --- | --- |")
         for finding in result.security.findings:
-            add(f"| {finding.id} | {finding.severity.value} | {finding.certainty.value} | {finding.title} | "
+            add(f"| {_c(finding.id)} | {finding.severity.value} | {finding.certainty.value} | {_c(finding.title)} | "
                 f"{', '.join(finding.component_ids) or '—'} |")
         add("")
         for finding in result.security.findings:
@@ -186,7 +196,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| Severity | Certainty | Finding | Evidence |")
         add("| --- | --- | --- | --- |")
         for finding in result.security.baseline_findings:
-            add(f"| {finding.severity.value} | {finding.certainty.value} | {finding.title} | "
+            add(f"| {finding.severity.value} | {finding.certainty.value} | {_c(finding.title)} | "
                 f"{'; '.join(finding.evidence)} |")
         add("")
     if result.security.verification_gaps:
@@ -217,7 +227,7 @@ def to_markdown(result: AnalysisResult) -> str:
     add("| Scenario | Fixed | Variable | Operational | Total |")
     add("| --- | --- | --- | --- | --- |")
     for scenario in result.cost.scenarios:
-        add(f"| {scenario.label} | {scenario.fixed_ricu:.2f} | {scenario.variable_ricu:.2f} | "
+        add(f"| {_c(scenario.label)} | {scenario.fixed_ricu:.2f} | {scenario.variable_ricu:.2f} | "
             f"{scenario.operational_ricu:.2f} | **{scenario.total_ricu:.2f}** |")
     add("")
     if "model_relative_change_pct" in result.cost.comparison:
@@ -234,7 +244,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| Item | Qty | Unit | RICU | Type | Basis |")
         add("| --- | --- | --- | --- | --- | --- |")
         for item in scenario.line_items:
-            add(f"| {item.label} | {item.quantity:g} | {item.unit} | {item.ricu:g} | {item.category.value} | "
+            add(f"| {_c(item.label)} | {item.quantity:g} | {_c(item.unit)} | {item.ricu:g} | {item.category.value} | "
                 f"{item.basis} |")
         add("")
     if result.cost.sensitivity:
@@ -243,7 +253,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| Driver | Scenario | Conventional | Proposed |")
         add("| --- | --- | --- | --- |")
         for entry in result.cost.sensitivity:
-            add(f"| {entry.name} | {entry.low_label} | {entry.conventional_delta_pct:+.1f}% | "
+            add(f"| {_c(entry.name)} | {_c(entry.low_label)} | {entry.conventional_delta_pct:+.1f}% | "
                 f"{entry.proposed_delta_pct:+.1f}% |")
         add("")
     if result.cost.insufficient_inputs:
@@ -273,7 +283,7 @@ def to_markdown(result: AnalysisResult) -> str:
     add("| Component | Change | Complexity | Reason |")
     add("| --- | --- | --- | --- |")
     for change in result.migration.components_requiring_modification:
-        add(f"| {change.component_label} | {change.change} | {change.complexity.value} | {change.reason} |")
+        add(f"| {_c(change.component_label)} | {_c(change.change)} | {change.complexity.value} | {_c(change.reason)} |")
     add("")
     if result.migration.dependencies_to_review:
         add("### Dependencies to review")
