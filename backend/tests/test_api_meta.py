@@ -84,3 +84,73 @@ def test_openapi_documents_the_contract(client):
     components = schema.get("components", {}).get("schemas", {})
     assert "AnalysisResult" in components
     assert "ProjectSummary" in components
+
+
+def test_input_limits_are_read_from_the_schema_not_copied(client):
+    """The form's client-side checks use these numbers, so they must be the schema's own bounds."""
+    from app.schemas.requirements import ApplicationRequirements
+
+    limits = client.get("/api/meta").json()["limits"]
+    fields = ApplicationRequirements.model_fields
+    name_bounds = {type(item).__name__ for item in fields["name"].metadata}
+    assert name_bounds, "the name field carries explicit length constraints"
+    assert limits["name_min_chars"] == 2
+    assert limits["name_max_chars"] == 90
+    assert limits["description_min_chars"] == 10
+    assert limits["description_max_chars"] == 4000
+    assert limits["additional_requirements_max_chars"] == 2000
+
+
+def test_meta_limits_expose_the_schema_minimums_the_form_checks(client):
+    """The Analyze form's name and description checks read these keys; they must be present."""
+    from app.schemas.requirements import ApplicationRequirements
+
+    limits = client.get("/api/meta").json()["limits"]
+    name = {type(item).__name__: item for item in ApplicationRequirements.model_fields["name"].metadata}
+    description = {type(item).__name__: item for item in ApplicationRequirements.model_fields["description"].metadata}
+    assert limits["name_min_chars"] == name["MinLen"].min_length == 2
+    assert limits["name_max_chars"] == name["MaxLen"].max_length == 90
+    assert limits["description_min_chars"] == description["MinLen"].min_length == 10
+    assert limits["description_max_chars"] == description["MaxLen"].max_length == 4000
+
+
+def test_meta_limits_follow_the_schema_rather_than_fixed_numbers(client, monkeypatch):
+    """Changing the schema must change the published limits; a copied constant would not move."""
+    import app.api.routes.meta as meta_module
+    from pydantic import BaseModel, Field
+
+    class ChangedRequirements(BaseModel):
+        name: str = Field(min_length=5, max_length=40)
+        description: str = Field(min_length=20, max_length=500)
+        additional_requirements: str | None = Field(default=None, max_length=300)
+
+    monkeypatch.setattr(meta_module, "ApplicationRequirements", ChangedRequirements)
+    limits = meta_module.input_limits()
+    assert limits["name_min_chars"] == 5
+    assert limits["name_max_chars"] == 40
+    assert limits["description_min_chars"] == 20
+    assert limits["description_max_chars"] == 500
+    assert limits["additional_requirements_max_chars"] == 300
+
+
+def test_meta_operation_limits_come_from_the_analysis_options_schema(client):
+    from app.schemas.analysis import AnalysisOptions
+
+    ops = client.get("/api/meta").json()["limits"]["max_operations_per_view"]
+    assert ops == {"min": 6, "max": 24, "default": 14}
+    field = AnalysisOptions.model_fields["max_operations_per_view"]
+    assert ops["default"] == field.default
+    bounds = {type(item).__name__: item for item in field.metadata}
+    assert ops["min"] == bounds["Ge"].ge
+    assert ops["max"] == bounds["Le"].le
+
+
+def test_meta_suitability_keeps_the_engine_values_the_method_page_reads(client):
+    """MethodPage reads missing_weight_limit; the engine's own constants must be what is published."""
+    from app.rules.suitability_rules import BANDS, MISSING_WEIGHT_LIMIT, RULE_PACK_VERSION
+
+    suitability = client.get("/api/meta").json()["suitability"]
+    assert suitability["missing_weight_limit"] == MISSING_WEIGHT_LIMIT
+    assert suitability["rule_pack_version"] == RULE_PACK_VERSION
+    assert [band["min_score"] for band in suitability["bands"]] == [threshold for threshold, _ in BANDS]
+    assert suitability["weight_rationale"]

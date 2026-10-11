@@ -2,291 +2,260 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * NYX design system — "The Midnight Observatory".
+ *
+ * Solid colour tokens live in tailwind.config.js. Glass tokens are defined once below
+ * and used by every glass level, so the surfaces stay consistent.
+ *
+ * Rules: NO GRADIENTS (no linear/radial/conic functions, no gradient utilities).
+ * Atmosphere comes from solid colour, blur, translucency and borders only.
+ */
+
+:root {
+  /* Glass levels: translucent tint over the midnight canvas. */
+  --nyx-glass: rgba(35, 31, 62, 0.48); /* workspace panels */
+  --nyx-glass-elevated: rgba(45, 40, 76, 0.56); /* interactive panels */
+  --nyx-glass-float: rgba(30, 27, 56, 0.7); /* floating controls, overlays */
+  --nyx-glass-nav: rgba(13, 16, 32, 0.62); /* navigation and utility bar */
+  --nyx-glass-border: rgba(185, 160, 255, 0.2);
+  --nyx-glass-highlight: rgba(255, 255, 255, 0.045);
+  /* Opaque stand-in used when backdrop-filter is unsupported. */
+  --nyx-glass-fallback: rgb(24, 22, 46);
+  --nyx-blur: 20px;
+}
+
 @layer base {
   :root {
     color-scheme: dark;
-    --nyx-violet: 124 92 255;
-    --nyx-cyan: 34 211 238;
-  }
-
-  * {
-    border-color: theme('colors.hairline');
   }
 
   html,
   body,
   #root {
-    height: 100%;
+    min-height: 100%;
   }
 
   body {
-    @apply bg-void text-soft font-sans antialiased;
-    text-rendering: optimizeLegibility;
-    font-feature-settings: 'cv02', 'cv03', 'ss01';
+    @apply bg-obsidian font-sans text-chalk antialiased;
+  }
+
+  ::selection {
+    background: rgba(185, 160, 255, 0.3);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid #b9a0ff;
+    outline-offset: 2px;
+    border-radius: 6px;
   }
 
   h1,
   h2,
-  h3,
-  h4 {
-    @apply text-white tracking-[-0.015em];
+  h3 {
+    @apply text-chalk;
     text-wrap: balance;
   }
 
-  ::selection {
-    background: rgb(var(--nyx-violet) / 0.35);
-  }
-
-  /* Thin, unobtrusive scrollbars so the panels feel part of the surface. */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: theme('colors.hairline') transparent;
-  }
-
-  *::-webkit-scrollbar {
-    width: 9px;
-    height: 9px;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background: theme('colors.hairline');
-    border-radius: 999px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--nyx-violet) / 0.55);
-    background-clip: content-box;
-  }
-
-  :focus-visible {
-    outline: 2px solid rgb(var(--nyx-cyan) / 0.8);
-    outline-offset: 2px;
+  /* Grid tracks may shrink below their content, so wide tables and headings scroll inside
+   * their own container instead of forcing the whole page sideways on small screens.
+   * Utility classes such as grid-cols-4 still override this at any breakpoint. */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @layer components {
-  .nyx-panel {
-    @apply rounded-card border border-hairline bg-surface/95 shadow-panel;
+  /* Glass levels. Each uses real backdrop blur plus a translucent tint. */
+
+  /* 1. Main workspace panels. */
+  .nyx-glass {
+    @apply rounded-panel border ;
+    background: var(--nyx-glass);
+    border-color: var(--nyx-glass-border);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2), inset 0 1px 0 var(--nyx-glass-highlight);
+    backdrop-filter: blur(var(--nyx-blur)) saturate(135%);
+    -webkit-backdrop-filter: blur(var(--nyx-blur)) saturate(135%);
   }
 
+  /* 2. Elevated interactive panels (cards, templates, results sections). */
+  .nyx-glass-raised {
+    @apply rounded-panel border;
+    background: var(--nyx-glass-elevated);
+    border-color: rgba(185, 160, 255, 0.24);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+  }
+
+  /* 3. Floating controls and contextual overlays. */
+  .nyx-glass-float {
+    @apply rounded-2xl border;
+    background: var(--nyx-glass-float);
+    border-color: rgba(185, 160, 255, 0.28);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+  }
+
+  /* 4. Navigation and utility surfaces. */
+  .nyx-glass-nav {
+    background: var(--nyx-glass-nav);
+    border-bottom: 1px solid rgba(244, 242, 255, 0.07);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+  }
+
+  /* Solid inset for dense data (tables, detail blocks): readable, not frosted. */
   .nyx-inset {
-    @apply rounded-xl border border-hairline/70 bg-ink/70;
+    @apply rounded-xl border border-chalk/[0.06] bg-obsidian/70;
+  }
+
+  /* Hover and focus feedback for interactive glass. Border and tint only; no scaling. */
+  .nyx-interactive {
+    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .nyx-interactive:hover {
+    border-color: rgba(185, 160, 255, 0.42);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(185, 160, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .nyx-interactive:active {
+    border-color: rgba(185, 160, 255, 0.55);
   }
 
   .nyx-eyebrow {
-    @apply text-2xs font-semibold uppercase tracking-[0.14em] text-muted;
-  }
-
-  .nyx-hairline-top {
-    @apply relative;
-  }
-
-  .nyx-hairline-top::before {
-    content: '';
-    position: absolute;
-    inset-inline: 0;
-    top: 0;
-    height: 1px;
-    background: theme('backgroundImage.nyx-line');
-    opacity: 0.65;
-  }
-
-  .nyx-skeleton {
-    @apply relative overflow-hidden rounded-lg bg-raised/70;
-  }
-
-  .nyx-skeleton::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
-    animation: nyx-skeleton-sweep 1.6s ease-in-out infinite;
-  }
-
-  @keyframes nyx-skeleton-sweep {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(220%);
-    }
+    @apply font-mono text-2xs font-semibold uppercase tracking-[0.16em] text-silver;
   }
 
   .nyx-metric {
-    @apply font-mono text-2xl font-medium tabular-nums text-white;
+    @apply font-mono tabular-nums text-chalk;
+  }
+
+  .nyx-title {
+    @apply text-2xl font-semibold tracking-tight text-chalk sm:text-3xl;
+  }
+
+  .nyx-subtitle {
+    @apply text-sm leading-relaxed text-silver;
+  }
+
+  .nyx-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Primary action: the one solid violet surface on a screen. */
+  .nyx-btn-primary {
+    @apply nyx-btn bg-primary text-obsidian shadow-[0_8px_24px_-12px_rgba(185,160,255,0.6)] hover:bg-primary-hover;
+  }
+
+  .nyx-btn-secondary {
+    @apply nyx-btn border border-chalk/15 text-chalk hover:border-primary/40 hover:bg-chalk/[0.06];
+    background: var(--nyx-glass-float);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .nyx-btn-ghost {
+    @apply nyx-btn text-silver hover:bg-chalk/[0.06] hover:text-chalk;
+  }
+
+  .nyx-btn-danger {
+    @apply nyx-btn border border-coral/40 bg-coral/10 text-coral hover:bg-coral/20;
+  }
+
+  .nyx-field {
+    @apply w-full rounded-xl border border-chalk/[0.12] bg-obsidian/70 px-3 py-2 text-sm text-chalk placeholder:text-muted focus:border-primary/70 focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-60;
+  }
+
+  .nyx-label {
+    @apply mb-1.5 block text-sm font-medium text-chalk;
+  }
+
+  .nyx-hint {
+    @apply mt-1.5 text-xs text-silver;
+  }
+
+  .nyx-chip {
+    @apply inline-flex items-center gap-1.5 rounded-chip border px-2.5 py-0.5 font-mono text-2xs font-semibold uppercase tracking-[0.12em];
+  }
+
+  .nyx-tab {
+    @apply rounded-lg px-3 py-2 text-sm font-medium text-silver transition-colors hover:text-chalk aria-selected:bg-chalk/[0.08] aria-selected:text-chalk;
+  }
+
+  .nyx-link {
+    @apply text-primary underline-offset-4 hover:underline;
+  }
+
+  .nyx-animate-in {
+    animation: fade-up 240ms ease-out both;
+  }
+
+  /* Atmosphere: fixed, decorative, behind the content. Solid colour, blur and CSS geometry. */
+  .nyx-atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    background-color: #080911;
+  }
+
+  .nyx-grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.6;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M64 0H0V64' fill='none' stroke='%23F4F2FF' stroke-opacity='0.035'/%3E%3C/svg%3E");
+  }
+
+  .nyx-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(96px);
   }
 }
 
-/* ---------------------------------------------------------------- React Flow --
-   The canvas is the hero of the app: the default light chrome is replaced with
-   the NYX surface so nodes read as cards floating on the midnight backdrop.    */
-.react-flow {
-  background: transparent;
-}
-
-.react-flow__attribution {
-  display: none;
-}
-
-.react-flow__handle {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: theme('colors.hairline');
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  opacity: 0;
-  transition: opacity 140ms ease;
-}
-
-.react-flow__node:hover .react-flow__handle,
-.react-flow__node.selected .react-flow__handle {
-  opacity: 1;
-}
-
-.react-flow__edge-path {
-  stroke: rgba(160, 174, 205, 0.42);
-  stroke-width: 1.35;
-}
-
-.react-flow__edge.animated .react-flow__edge-path {
-  stroke: rgb(var(--nyx-cyan) / 0.75);
-}
-
-.react-flow__edge.selected .react-flow__edge-path,
-.react-flow__edge.nyx-edge-active .react-flow__edge-path {
-  stroke: rgb(var(--nyx-violet) / 0.95);
-  stroke-width: 1.9;
-}
-
-.react-flow__edge.nyx-edge-dimmed .react-flow__edge-path {
-  stroke: rgba(160, 174, 205, 0.14);
-}
-
-.react-flow__edge-text {
-  fill: theme('colors.muted');
-  font-size: 10px;
-  font-weight: 500;
-}
-
-.react-flow__edge-textbg {
-  fill: theme('colors.ink');
-}
-
-.react-flow__controls {
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid theme('colors.hairline');
-  box-shadow: theme('boxShadow.panel');
-}
-
-.react-flow__controls-button {
-  background: theme('colors.surface');
-  border-bottom: 1px solid theme('colors.hairline');
-  fill: theme('colors.muted');
-  width: 26px;
-  height: 26px;
-}
-
-.react-flow__controls-button:hover {
-  background: theme('colors.raised');
-  fill: theme('colors.white');
-}
-
-.react-flow__minimap {
-  background: theme('colors.ink');
-  border: 1px solid theme('colors.hairline');
-  border-radius: 12px;
-}
-
-.react-flow__minimap-mask {
-  fill: rgba(5, 6, 11, 0.72);
-}
-
-.react-flow__node {
-  font-family: inherit;
-}
-
-.nyx-node-selected {
-  box-shadow: theme('boxShadow.glow-violet');
-}
-
-/* ------------------------------------------------------------------- printing --
-   "Save as PDF" is a browser print of the report view, so the print stylesheet
-   has to turn the dark UI into a clean document rather than a negative.        */
-@page {
-  size: A4 portrait;
-  margin: 14mm 12mm;
-}
-
-@media print {
-  html,
-  body {
-    background: #ffffff !important;
-    color: #10131c !important;
+@layer utilities {
+  .nyx-scroll-x {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
+}
 
-  .nyx-no-print {
-    display: none !important;
+/* Browsers without backdrop-filter: keep the same surfaces, opaque enough to read. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .nyx-glass,
+  .nyx-glass-raised,
+  .nyx-glass-float,
+  .nyx-glass-nav,
+  .nyx-btn-secondary {
+    background: var(--nyx-glass-fallback);
   }
+}
 
-  .nyx-print-sheet {
-    background: #ffffff !important;
-    color: #10131c !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: none !important;
-    overflow: visible !important;
-    height: auto !important;
+/* Users who ask for less transparency get solid surfaces with the same borders. */
+@media (prefers-reduced-transparency: reduce) {
+  .nyx-glass,
+  .nyx-glass-raised,
+  .nyx-glass-float,
+  .nyx-glass-nav,
+  .nyx-btn-secondary {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--nyx-glass-fallback);
   }
+}
 
-  .nyx-print-sheet * {
-    background: transparent !important;
-    color: #10131c !important;
-    border-color: #d5d9e4 !important;
-    box-shadow: none !important;
+/* Smaller screens: keep the atmosphere but make blur cheaper to paint. */
+@media (max-width: 640px) {
+  .nyx-orb {
+    filter: blur(64px);
   }
-
-  .nyx-print-sheet h1 {
-    font-size: 22pt;
-  }
-
-  .nyx-print-sheet h2 {
-    font-size: 13pt;
-    margin-top: 18pt;
-    break-after: avoid;
-  }
-
-  .nyx-print-sheet h3 {
-    font-size: 11pt;
-    break-after: avoid;
-  }
-
-  .nyx-print-sheet table {
-    font-size: 8.5pt;
-    width: 100%;
-  }
-
-  .nyx-print-sheet th {
-    text-align: left;
-    border-bottom: 0.6pt solid #9aa2b5;
-  }
-
-  .nyx-print-sheet td,
-  .nyx-print-sheet th {
-    padding: 3pt 4pt;
-  }
-
-  .nyx-print-sheet tr,
-  .nyx-print-sheet li {
-    break-inside: avoid;
-  }
-
-  .nyx-print-page-break {
-    break-before: page;
+  :root {
+    --nyx-blur: 14px;
   }
 }
 
@@ -294,7 +263,9 @@
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
 }

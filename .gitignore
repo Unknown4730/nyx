@@ -19,8 +19,10 @@ coverage/
 *.sqlite
 *.sqlite3
 *.db
-data/
-backend/data/*.sqlite*
+# Anchored to the repository root so that runtime catalogues under
+# backend/app/data/ stay trackable.
+/data/
+backend/data/
 frontend/public/reports/
 .env
 .env.*

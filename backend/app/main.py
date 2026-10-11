@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.errors import register_exception_handlers
 from app.api.routes import analysis, health, meta, projects
@@ -38,6 +39,20 @@ def _configure_logging(level: str) -> None:
 async def lifespan(app: FastAPI):  # pragma: no cover - exercised by app startup
     settings = get_settings()
     _configure_logging(settings.log_level)
+    # Required runtime data is validated before the service accepts traffic: a
+    # missing or malformed catalogue must stop the start-up, not surface later as
+    # a 500 on the first analysis.
+    from app.services.cloud_catalog import get_catalog
+    from app.services.templates import load_templates
+
+    catalog = get_catalog()
+    templates = load_templates()
+    logger.info(
+        "data loaded: catalogue %s (%d services), %d template(s)",
+        catalog.version,
+        len(catalog.services),
+        len(templates),
+    )
     store = get_store()
     logger.info("NYX %s starting (schema %s)", settings.version, SCHEMA_VERSION)
     logger.info("storage: %s", settings.db_path)
@@ -139,6 +154,9 @@ def _mount_frontend(app: FastAPI, settings) -> None:  # type: ignore[no-untyped-
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str) -> FileResponse:
+        # Unknown API paths must stay JSON errors; only browser routes fall back to the app shell.
+        if full_path == "api" or full_path.startswith("api/"):
+            raise StarletteHTTPException(status_code=404, detail="Not Found")
         candidate = (root / full_path).resolve()
         if full_path and candidate.is_file() and candidate.is_relative_to(root.resolve()):
             return FileResponse(candidate)

@@ -151,3 +151,30 @@ def test_report_survives_a_minimal_input():
     assert "No assumptions were needed" in text or "Assumptions" in text
     assert "## 9. Migration assessment" in text
     assert "unspecified" not in text.lower()[:200]
+
+
+def test_user_text_cannot_break_markdown_table_rows():
+    """Pipes and line breaks typed by a user must not add or break table columns."""
+    from app.services.report_generator import _c
+
+    assert _c("A | B\nC") == "A \\| B C"
+    assert _c("back\\slash") == "back\\\\slash"
+    # Built through the validated constructor, as the API does (validators collapse whitespace).
+    requirements = ApplicationRequirements(
+        name="Ops | Team\nLine two",
+        description="A college attendance portal with pipes | in notes and relational data for 300 staff.",
+        additional_requirements="Use | pipes and\nnewlines",
+    )
+    result = AnalysisPipeline().run(AnalysisRequest(requirements=requirements, options=AnalysisOptions(use_ai=False)))
+    blocks: list[list[str]] = []
+    current: list[str] = []
+    for line in to_markdown(result).splitlines():
+        if line.startswith("|") and line.endswith("|"):
+            current.append(line)
+        elif current:
+            blocks.append(current)
+            current = []
+    assert len(blocks) >= 3, "the report should contain several tables"
+    for block in blocks:
+        column_counts = {line.replace("\\|", "").count("|") for line in block}
+        assert len(column_counts) == 1, block

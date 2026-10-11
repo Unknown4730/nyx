@@ -1,0 +1,812 @@
+{
+  "product": {
+    "name": "NYX",
+    "title": "AI-Assisted Serverless Migration and Cloud Architecture Advisor",
+    "tagline": "Rethink your architecture.",
+    "version": "1.0.0",
+    "schema_version": "nyx.analysis/1",
+    "rule_pack_version": "2026.10",
+    "catalog_version": "2026.10",
+    "cost_model_version": "2026.10",
+    "templates_version": "2026.10"
+  },
+  "ai": {
+    "configured": false,
+    "enabled": true,
+    "base_url_set": false,
+    "api_key_set": false,
+    "model": null,
+    "timeout_s": 12.0,
+    "max_retries": 1,
+    "max_tokens": 1200,
+    "unavailable_reason": "No OpenAI-compatible endpoint configured (NYX_AI_BASE_URL)."
+  },
+  "enums": {
+    "application_type": [
+      {
+        "value": "web_app",
+        "label": "Web App"
+      },
+      {
+        "value": "mobile_backend",
+        "label": "Mobile Backend"
+      },
+      {
+        "value": "api_service",
+        "label": "Api Service"
+      },
+      {
+        "value": "content_site",
+        "label": "Content Site"
+      },
+      {
+        "value": "ecommerce",
+        "label": "Ecommerce"
+      },
+      {
+        "value": "learning_platform",
+        "label": "Learning Platform"
+      },
+      {
+        "value": "examination_platform",
+        "label": "Examination Platform"
+      },
+      {
+        "value": "logistics_marketplace",
+        "label": "Logistics Marketplace"
+      },
+      {
+        "value": "batch_processing",
+        "label": "Batch Processing"
+      },
+      {
+        "value": "data_pipeline",
+        "label": "Data Pipeline"
+      },
+      {
+        "value": "realtime_collaboration",
+        "label": "Realtime Collaboration"
+      },
+      {
+        "value": "streaming_media",
+        "label": "Streaming Media"
+      },
+      {
+        "value": "iot_ingestion",
+        "label": "Iot Ingestion"
+      },
+      {
+        "value": "ml_inference",
+        "label": "Ml Inference"
+      },
+      {
+        "value": "internal_tool",
+        "label": "Internal Tool"
+      },
+      {
+        "value": "unknown",
+        "label": "Unknown"
+      }
+    ],
+    "traffic_pattern": [
+      {
+        "value": "steady",
+        "label": "Steady"
+      },
+      {
+        "value": "diurnal",
+        "label": "Diurnal"
+      },
+      {
+        "value": "spiky_event_driven",
+        "label": "Spiky Event Driven"
+      },
+      {
+        "value": "bursty_scheduled",
+        "label": "Bursty Scheduled"
+      },
+      {
+        "value": "unpredictable",
+        "label": "Unpredictable"
+      },
+      {
+        "value": "unknown",
+        "label": "Unknown"
+      }
+    ],
+    "data_storage": [
+      {
+        "value": "relational",
+        "label": "Relational"
+      },
+      {
+        "value": "document",
+        "label": "Document"
+      },
+      {
+        "value": "key_value",
+        "label": "Key Value"
+      },
+      {
+        "value": "object_storage",
+        "label": "Object Storage"
+      },
+      {
+        "value": "file_share",
+        "label": "File Share"
+      },
+      {
+        "value": "cache_session",
+        "label": "Cache Session"
+      },
+      {
+        "value": "search_index",
+        "label": "Search Index"
+      },
+      {
+        "value": "time_series",
+        "label": "Time Series"
+      },
+      {
+        "value": "analytical_warehouse",
+        "label": "Analytical Warehouse"
+      },
+      {
+        "value": "queue_or_log",
+        "label": "Queue Or Log"
+      },
+      {
+        "value": "none",
+        "label": "None"
+      },
+      {
+        "value": "unknown",
+        "label": "Unknown"
+      }
+    ],
+    "availability": [
+      {
+        "value": "best_effort",
+        "label": "Best Effort"
+      },
+      {
+        "value": "standard",
+        "label": "Standard"
+      },
+      {
+        "value": "high",
+        "label": "High"
+      },
+      {
+        "value": "critical",
+        "label": "Critical"
+      },
+      {
+        "value": "unknown",
+        "label": "Unknown"
+      }
+    ],
+    "budget": [
+      {
+        "value": "minimize",
+        "label": "Minimize"
+      },
+      {
+        "value": "balanced",
+        "label": "Balanced"
+      },
+      {
+        "value": "performance_first",
+        "label": "Performance First"
+      },
+      {
+        "value": "unknown",
+        "label": "Unknown"
+      }
+    ],
+    "provider": [
+      {
+        "value": "aws",
+        "label": "Aws"
+      },
+      {
+        "value": "gcp",
+        "label": "Gcp"
+      },
+      {
+        "value": "azure",
+        "label": "Azure"
+      }
+    ],
+    "suitability_outcome": [
+      {
+        "value": "strong_candidate",
+        "label": "Strong Candidate"
+      },
+      {
+        "value": "suitable_with_modifications",
+        "label": "Suitable With Modifications"
+      },
+      {
+        "value": "partial_serverless_adoption",
+        "label": "Partial Serverless Adoption"
+      },
+      {
+        "value": "further_assessment_required",
+        "label": "Further Assessment Required"
+      },
+      {
+        "value": "poor_candidate_for_proposed_serverless",
+        "label": "Poor Candidate For Proposed Serverless"
+      }
+    ],
+    "deployment_target": [
+      {
+        "value": "serverless_function",
+        "label": "Serverless Function"
+      },
+      {
+        "value": "managed_service",
+        "label": "Managed Service"
+      },
+      {
+        "value": "container",
+        "label": "Container"
+      },
+      {
+        "value": "virtual_machine",
+        "label": "Virtual Machine"
+      },
+      {
+        "value": "retain_as_is",
+        "label": "Retain As Is"
+      },
+      {
+        "value": "review_required",
+        "label": "Review Required"
+      }
+    ],
+    "component_tier": [
+      {
+        "value": "edge",
+        "label": "Edge"
+      },
+      {
+        "value": "presentation",
+        "label": "Presentation"
+      },
+      {
+        "value": "application",
+        "label": "Application"
+      },
+      {
+        "value": "integration",
+        "label": "Integration"
+      },
+      {
+        "value": "processing",
+        "label": "Processing"
+      },
+      {
+        "value": "data",
+        "label": "Data"
+      },
+      {
+        "value": "security",
+        "label": "Security"
+      },
+      {
+        "value": "operations",
+        "label": "Operations"
+      }
+    ],
+    "severity": [
+      {
+        "value": "info",
+        "label": "Info"
+      },
+      {
+        "value": "low",
+        "label": "Low"
+      },
+      {
+        "value": "medium",
+        "label": "Medium"
+      },
+      {
+        "value": "high",
+        "label": "High"
+      },
+      {
+        "value": "critical",
+        "label": "Critical"
+      }
+    ],
+    "effort_level": [
+      {
+        "value": "low",
+        "label": "Low"
+      },
+      {
+        "value": "moderate",
+        "label": "Moderate"
+      },
+      {
+        "value": "high",
+        "label": "High"
+      },
+      {
+        "value": "further_assessment_required",
+        "label": "Further Assessment Required"
+      }
+    ],
+    "recommended_pattern": [
+      {
+        "value": "serverless_first",
+        "label": "Serverless First"
+      },
+      {
+        "value": "serverless_where_suitable",
+        "label": "Serverless Where Suitable"
+      },
+      {
+        "value": "hybrid",
+        "label": "Hybrid"
+      },
+      {
+        "value": "managed_container",
+        "label": "Managed Container"
+      },
+      {
+        "value": "conventional_keep",
+        "label": "Conventional Keep"
+      },
+      {
+        "value": "further_assessment",
+        "label": "Further Assessment"
+      }
+    ],
+    "runtime": [
+      {
+        "value": "request_response",
+        "label": "Request Response"
+      },
+      {
+        "value": "event_triggered",
+        "label": "Event Triggered"
+      },
+      {
+        "value": "long_running",
+        "label": "Long Running"
+      },
+      {
+        "value": "streaming",
+        "label": "Streaming"
+      },
+      {
+        "value": "scheduled_batch",
+        "label": "Scheduled Batch"
+      },
+      {
+        "value": "always_on",
+        "label": "Always On"
+      },
+      {
+        "value": "static",
+        "label": "Static"
+      },
+      {
+        "value": "managed",
+        "label": "Managed"
+      }
+    ],
+    "duration_profile": [
+      {
+        "value": "sub_second",
+        "label": "Sub Second"
+      },
+      {
+        "value": "few_seconds",
+        "label": "Few Seconds"
+      },
+      {
+        "value": "minutes",
+        "label": "Minutes"
+      },
+      {
+        "value": "indefinite",
+        "label": "Indefinite"
+      },
+      {
+        "value": "unspecified",
+        "label": "Unspecified"
+      }
+    ],
+    "logical_component_type": [
+      {
+        "value": "client_web",
+        "label": "Client Web"
+      },
+      {
+        "value": "client_mobile",
+        "label": "Client Mobile"
+      },
+      {
+        "value": "dns",
+        "label": "Dns"
+      },
+      {
+        "value": "cdn",
+        "label": "Cdn"
+      },
+      {
+        "value": "load_balancer",
+        "label": "Load Balancer"
+      },
+      {
+        "value": "api_gateway",
+        "label": "Api Gateway"
+      },
+      {
+        "value": "web_server",
+        "label": "Web Server"
+      },
+      {
+        "value": "app_server",
+        "label": "App Server"
+      },
+      {
+        "value": "container_service",
+        "label": "Container Service"
+      },
+      {
+        "value": "virtual_machine",
+        "label": "Virtual Machine"
+      },
+      {
+        "value": "function",
+        "label": "Function"
+      },
+      {
+        "value": "worker",
+        "label": "Worker"
+      },
+      {
+        "value": "queue",
+        "label": "Queue"
+      },
+      {
+        "value": "pubsub",
+        "label": "Pubsub"
+      },
+      {
+        "value": "scheduler",
+        "label": "Scheduler"
+      },
+      {
+        "value": "batch_job",
+        "label": "Batch Job"
+      },
+      {
+        "value": "object_storage",
+        "label": "Object Storage"
+      },
+      {
+        "value": "block_storage",
+        "label": "Block Storage"
+      },
+      {
+        "value": "relational_db",
+        "label": "Relational Db"
+      },
+      {
+        "value": "document_db",
+        "label": "Document Db"
+      },
+      {
+        "value": "key_value_db",
+        "label": "Key Value Db"
+      },
+      {
+        "value": "cache",
+        "label": "Cache"
+      },
+      {
+        "value": "search_index",
+        "label": "Search Index"
+      },
+      {
+        "value": "time_series_db",
+        "label": "Time Series Db"
+      },
+      {
+        "value": "data_warehouse",
+        "label": "Data Warehouse"
+      },
+      {
+        "value": "auth_identity",
+        "label": "Auth Identity"
+      },
+      {
+        "value": "secrets_manager",
+        "label": "Secrets Manager"
+      },
+      {
+        "value": "notification",
+        "label": "Notification"
+      },
+      {
+        "value": "reporting",
+        "label": "Reporting"
+      },
+      {
+        "value": "ml_inference",
+        "label": "Ml Inference"
+      },
+      {
+        "value": "data_stream",
+        "label": "Data Stream"
+      },
+      {
+        "value": "monitoring",
+        "label": "Monitoring"
+      },
+      {
+        "value": "logging",
+        "label": "Logging"
+      },
+      {
+        "value": "ci_artifact_store",
+        "label": "Ci Artifact Store"
+      },
+      {
+        "value": "backup",
+        "label": "Backup"
+      }
+    ]
+  },
+  "suitability": {
+    "bands": [
+      {
+        "outcome": "strong_candidate",
+        "min_score": 78.0,
+        "label": "strong candidate"
+      },
+      {
+        "outcome": "suitable_with_modifications",
+        "min_score": 62.0,
+        "label": "suitable with modifications"
+      },
+      {
+        "outcome": "partial_serverless_adoption",
+        "min_score": 45.0,
+        "label": "partial serverless adoption"
+      },
+      {
+        "outcome": "poor_candidate_for_proposed_serverless",
+        "min_score": 0.0,
+        "label": "poor candidate for proposed serverless"
+      }
+    ],
+    "weight_rationale": "Weights prioritise the factors with the largest documented impact on serverless platform limits: execution duration and traffic variability first, then coupling (state, persistent connections, database connection patterns), then resource/runtime constraints.  They are fixed for this rule pack version so that scores are reproducible and testable, and they are not an industry standard.",
+    "missing_weight_limit": 0.3,
+    "rule_pack_version": "2026.10"
+  },
+  "derivation": {
+    "active_days_per_month": 26,
+    "requests_per_session": 9,
+    "sessions_per_user_by_type": {
+      "examination_platform": 1.1,
+      "learning_platform": 1.4,
+      "ecommerce": 1.8,
+      "logistics_marketplace": 3.0,
+      "batch_processing": 0.4,
+      "data_pipeline": 0.5,
+      "realtime_collaboration": 4.0,
+      "streaming_media": 2.2,
+      "iot_ingestion": 6.0,
+      "mobile_backend": 2.5,
+      "api_service": 2.0,
+      "content_site": 1.2,
+      "ml_inference": 1.5,
+      "internal_tool": 1.3,
+      "web_app": 1.6,
+      "unknown": 1.5
+    },
+    "peak_ratio_by_traffic": {
+      "spiky_event_driven": 3.2,
+      "bursty_scheduled": 2.4,
+      "diurnal": 1.9,
+      "unpredictable": 2.6,
+      "steady": 1.15,
+      "unknown": 1.6
+    }
+  },
+  "cost": {
+    "unit": "RICU",
+    "unit_name": "Relative Infrastructure Cost Unit",
+    "definition": "1 RICU = the relative monthly cost of one small always-on compute unit (1 vCPU / 2 GB class).",
+    "rates": [
+      "1 RICU = one small always-on compute unit-month (definition of the unit).",
+      "Function: 0.0067 RICU per 1M invocations + 5.6e-07 RICU per GB-second.",
+      "Container/job runtime: 0.0022 RICU per hour.",
+      "Object storage: 0.0008 RICU per GB-month (same in both models).",
+      "Operational load proxy: 0.35 vs 0.12 RICU per component-month."
+    ],
+    "model_version": "2026.10"
+  },
+  "catalog": {
+    "version": "2026.10",
+    "disclaimer": "Service identity catalogue for architecture recommendations only. This is not a pricing file: it contains no prices, quotas or SLAs. Names, URLs, limits and region availability must be re-verified against the provider documentation before any real implementation.",
+    "services_per_provider": {
+      "aws": 28,
+      "azure": 26,
+      "gcp": 27
+    },
+    "logical_component_types": 35,
+    "equivalence_levels": [
+      "conceptual",
+      "near",
+      "partial"
+    ],
+    "note": "Mappings compare the logical role a component plays, not commercial product parity. Names, limits and region availability must be re-verified against provider documentation before implementation."
+  },
+  "templates": [
+    {
+      "id": "college-attendance",
+      "name": "College Attendance Portal",
+      "tagline": "Daily attendance marking for a campus of students and faculty.",
+      "icon": "ClipboardCheck",
+      "summary": "A campus web portal where faculty mark attendance and students review their records, with predictable daytime usage.",
+      "highlights": [
+        "Predictable daytime traffic",
+        "Relational records with audit needs",
+        "Small, staff-facing user base"
+      ],
+      "expected_outcome_hint": "Usually a good candidate for managed services, with a small API and scheduled reports.",
+      "form": {
+        "name": "College Attendance Portal",
+        "description": "A college attendance portal for about 3000 students and 150 faculty members. Faculty mark daily attendance for their classes, students view their own records and percentages, and administrators export monthly reports. Usage is steady during class hours with light peaks at the start of each lecture slot. Data is relational: courses, enrolments, sessions and attendance marks, with an audit trail of who changed what.",
+        "expected_users": 3150,
+        "traffic_pattern": "diurnal",
+        "application_type": "web_app",
+        "data_storage": [
+          "relational",
+          "object_storage"
+        ],
+        "availability": "standard",
+        "budget": "minimize",
+        "preferred_provider": null,
+        "additional_requirements": "Login through the institution's existing identity provider; keep an audit trail of attendance edits."
+      }
+    },
+    {
+      "id": "online-examination",
+      "name": "Online Examination Platform",
+      "tagline": "Timed assessments for large cohorts with spiky start times.",
+      "icon": "Timer",
+      "summary": "A examination platform where students sit timed papers simultaneously, creating sharp bursts at scheduled start times.",
+      "highlights": [
+        "Bursty scheduled sessions",
+        "Strict integrity and availability needs",
+        "Authenticated API"
+      ],
+      "expected_outcome_hint": "Serverless components suit submissions and grading; the live exam session path needs careful review.",
+      "form": {
+        "name": "Online Examination Platform",
+        "description": "An online examination platform for up to 10000 students. Exams are scheduled in fixed time windows, so many students start and submit at the same moment, then traffic falls back to near zero. Each attempt is timed, answers are saved periodically, submissions must not be lost, and results are published after grading. Data is relational for questions, attempts and results, with uploaded attachments and a question bank.",
+        "expected_users": 10000,
+        "traffic_pattern": "spiky_event_driven",
+        "application_type": "examination_platform",
+        "data_storage": [
+          "relational",
+          "object_storage",
+          "cache_session"
+        ],
+        "availability": "high",
+        "budget": "balanced",
+        "preferred_provider": null,
+        "additional_requirements": "Answers must be saved every 30 seconds; a submission must never be lost during a network interruption."
+      }
+    },
+    {
+      "id": "ecommerce-application",
+      "name": "Online Store",
+      "tagline": "A product catalogue, cart and checkout for a mid-sized retailer.",
+      "icon": "ShoppingBag",
+      "summary": "A retail storefront with a browsable catalogue, carts, card payments and order notifications, with seasonal peaks.",
+      "highlights": [
+        "Seasonal peaks",
+        "Payments and order integrity",
+        "Product search and media"
+      ],
+      "expected_outcome_hint": "A strong candidate for managed and serverless edge, catalogue and event-driven order processing.",
+      "form": {
+        "name": "Online Store",
+        "description": "An online store selling about 5000 products to roughly 80000 registered customers. Shoppers browse and search the catalogue, keep carts, and check out with card payments through an external payment provider. Orders trigger confirmation emails and stock updates. Traffic is steady on weekdays and spikes during seasonal sales. Product images are stored as objects; orders and inventory are transactional.",
+        "expected_users": 80000,
+        "traffic_pattern": "spiky_event_driven",
+        "application_type": "ecommerce",
+        "data_storage": [
+          "relational",
+          "object_storage",
+          "cache_session",
+          "search_index"
+        ],
+        "availability": "high",
+        "budget": "balanced",
+        "preferred_provider": null,
+        "additional_requirements": "Card data is handled by the payment provider only; the platform must not store card numbers."
+      }
+    },
+    {
+      "id": "food-delivery-platform",
+      "name": "Food Delivery Platform",
+      "tagline": "Restaurant ordering with live courier location updates.",
+      "icon": "Bike",
+      "summary": "A mobile-first ordering service connecting customers, restaurants and couriers, with real-time location updates during deliveries.",
+      "highlights": [
+        "Mobile clients",
+        "Real-time courier telemetry",
+        "Evening and lunch peaks"
+      ],
+      "expected_outcome_hint": "Event-driven order handling fits serverless well; continuous location streams need separate review.",
+      "form": {
+        "name": "Food Delivery Platform",
+        "description": "A food delivery platform with a mobile app for customers and couriers and a web dashboard for restaurants. About 200000 registered users place orders at lunch and dinner peaks. Couriers send location updates every few seconds during deliveries, customers track progress, and restaurants receive order notifications. Order and payment records are relational; location history is time-series data kept for 30 days.",
+        "expected_users": 200000,
+        "traffic_pattern": "spiky_event_driven",
+        "application_type": "logistics_marketplace",
+        "data_storage": [
+          "relational",
+          "cache_session",
+          "time_series"
+        ],
+        "availability": "high",
+        "budget": "performance_first",
+        "preferred_provider": null,
+        "additional_requirements": "Customers must see courier position updates within about 5 seconds; push notifications are required for order status changes."
+      }
+    },
+    {
+      "id": "file-processing-pipeline",
+      "name": "Document Processing Pipeline",
+      "tagline": "Upload, transform and report on batches of documents.",
+      "icon": "FileCog",
+      "summary": "An internal service that accepts uploaded document batches, processes them step by step and renders PDF reports. Several operating characteristics have not been measured yet.",
+      "highlights": [
+        "Asynchronous file processing",
+        "Generated PDF reports",
+        "Several open operating questions"
+      ],
+      "expected_outcome_hint": "Deliberately under-specified: the verdict is provisional until processing times, state sharing, traffic and availability are answered.",
+      "form": {
+        "name": "Document Processing Pipeline",
+        "description": "An internal tool used by about 400 staff to upload batches of scanned forms, extract the fields and check them against reference data. Each file goes through a processing step, and PDF rendering produces the reports for review. The team has not measured processing times, whether steps share intermediate state, how many database connections a batch needs, or when batches arrive. Results are stored as files, with metadata in a relational database.",
+        "expected_users": 400,
+        "traffic_pattern": null,
+        "application_type": "batch_processing",
+        "data_storage": [
+          "relational",
+          "object_storage"
+        ],
+        "availability": null,
+        "budget": "minimize",
+        "preferred_provider": null,
+        "additional_requirements": "Retain processed files for seven years for audit purposes."
+      }
+    }
+  ],
+  "limits": {
+    "name_min_chars": 2,
+    "name_max_chars": 90,
+    "description_min_chars": 10,
+    "description_max_chars": 4000,
+    "additional_requirements_max_chars": 2000,
+    "max_operations_per_view": {
+      "min": 6,
+      "max": 24,
+      "default": 14
+    }
+  }
+}

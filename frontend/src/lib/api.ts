@@ -1,12 +1,13 @@
 /**
  * Typed client for the NYX API.
  *
- * Every call is same-origin (`/api/...`) so the browser never needs to know
- * where the backend lives: vite proxies it in development and the backend serves
- * the built assets in production.  Failures are normalised into one shape so the
- * UI can distinguish "the engine rejected my input" from "the service is down".
+ * Every call is same-origin (`/api/...`) so the browser never needs to know where
+ * the backend lives: the Vite dev server proxies it, and the backend serves the
+ * built assets in production.  Failures are normalised into one shape so the UI can
+ * tell "the engine rejected my input" apart from "the service is down".
  */
 import type {
+  AnalysisExportRequest,
   AnalysisRequest,
   AnalysisResult,
   HealthResponse,
@@ -15,12 +16,12 @@ import type {
   ProjectSummary,
   ProjectUpdateRequest,
 } from '@/types/analysis'
-// `AnalysisExportRequest` is not emitted by the schema generator yet, so it lives
-// with the other hand-written contract types (see the approval request in the
-// Cycle 0a report).  Everything else here comes from the generated contract.
-import type { AiStatus, AnalysisExportRequest, ExportFormat, MetaPayload, ProjectStats } from '@/types/nyx'
+import type { AiStatus, ExportEnvelope, ExportFormat, MetaPayload, ProjectStats } from '@/types/nyx'
 
 export const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ''
+
+const DEFAULT_TIMEOUT_MS = 30_000
+const ANALYSIS_TIMEOUT_MS = 60_000
 
 /**
  * One failure shape for the whole client, built from the NYX error envelope:
@@ -43,9 +44,14 @@ export class NyxApiError extends Error {
     this.retryable = init.retryable ?? false
   }
 
-  /** 4xx means the user can fix it; 5xx/network means the service must be checked. */
+  /** 4xx means the user can fix it; 5xx and network failures mean the service must be checked. */
   get isClientError(): boolean {
     return this.status >= 400 && this.status < 500
+  }
+
+  /** True for failures where the backend could not be reached or did not answer. */
+  get isUnreachable(): boolean {
+    return this.status === 0 || this.status === 408
   }
 
   /** True when the API supplied at least one readable detail (usually validation). */
@@ -56,55 +62,73 @@ export class NyxApiError extends Error {
 
 type Init = RequestInit & { timeoutMs?: number }
 
-async function request<T>(path: string, init: Init = {}): Promise<T> {
-  const { timeoutMs = 30_000, headers, ...rest } = init
+/** Send a request and return the raw response, mapping transport failures to `NyxApiError`. */
+async function send(path: string, init: Init = {}): Promise<Response> {
+  const { timeoutMs = DEFAULT_TIMEOUT_MS, headers, ...rest } = init
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
-  let response: Response
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    return await fetch(`${API_BASE}${path}`, {
       ...rest,
       headers: { Accept: 'application/json', ...(headers ?? {}) },
       signal: controller.signal,
     })
   } catch (error) {
-    clearTimeout(timer)
     const aborted = error instanceof DOMException && error.name === 'AbortError'
     throw new NyxApiError({
       status: aborted ? 408 : 0,
       code: aborted ? 'client_timeout' : 'network_error',
       message: aborted
-        ? 'The backend did not answer in time. The analysis usually takes under a second, so the service may not be running.'
-        : 'Cannot reach the NYX API. Start the backend (uvicorn app.main:app) or set VITE_API_BASE_URL.',
+        ? 'The backend did not answer in time. Analyses usually finish within a few seconds; check that the API is running.'
+        : 'NYX cannot reach its API. Start the backend as described in the README, then retry.',
+      retryable: true,
     })
+  } finally {
+    clearTimeout(timer)
   }
-  clearTimeout(timer)
+}
 
+/** Turn a failed response into a `NyxApiError`, reading the envelope when there is one. */
+async function failure(response: Response): Promise<NyxApiError> {
   const contentType = response.headers.get('content-type') ?? ''
-  if (!response.ok) {
-    let parsed: ParsedApiError | null = null
-    if (contentType.includes('json')) {
-      parsed = readErrorEnvelope(await response.json().catch(() => null))
-    } else {
-      // A proxy or gateway error page: keep one short readable line, never HTML.
-      const text = (await response.text().catch(() => '')).trim()
-      if (text && !text.startsWith('<')) {
-        parsed = { code: 'http_error', message: text.slice(0, 240), details: [], retryable: false }
-      }
+  let parsed: ParsedApiError | null = null
+  if (contentType.includes('json')) {
+    parsed = readErrorEnvelope(await response.json().catch(() => null))
+  } else {
+    // A proxy or gateway error page: keep one short readable line, never HTML.
+    const text = (await response.text().catch(() => '')).trim()
+    if (text && !text.startsWith('<')) {
+      parsed = { code: 'http_error', message: text.slice(0, 240), details: [], retryable: false }
     }
+  }
+  return new NyxApiError({
+    status: response.status,
+    code: parsed?.code ?? 'http_error',
+    message: parsed?.message ?? `The API responded with ${response.status}.`,
+    details: parsed?.details,
+    retryable: parsed?.retryable ?? response.status >= 500,
+  })
+}
+
+async function request<T>(path: string, init: Init = {}): Promise<T> {
+  const response = await send(path, init)
+  if (!response.ok) throw await failure(response)
+  if (response.status === 204) return undefined as T
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('json')) {
     throw new NyxApiError({
       status: response.status,
-      code: parsed?.code ?? 'http_error',
-      message: parsed?.message ?? `The API responded with ${response.status}.`,
-      details: parsed?.details,
-      retryable: parsed?.retryable,
+      code: 'unexpected_response',
+      message: 'The API answered with something other than JSON.',
     })
   }
-
-  if (response.status === 204 || contentType.includes('json') === false) {
-    return undefined as T
-  }
   return (await response.json()) as T
+}
+
+async function requestText(path: string, init: Init = {}): Promise<string> {
+  const response = await send(path, init)
+  if (!response.ok) throw await failure(response)
+  return response.text()
 }
 
 /** The parts of the NYX error envelope this client reads. */
@@ -137,14 +161,8 @@ function toDetailStrings(value: unknown): string[] {
 }
 
 /**
- * Read the error envelope produced by `backend/app/api/errors.py`:
- *
- *     { "error": { "code": ..., "message": ..., "details": string[], "retryable": bool } }
- *
- * Every NYX failure — validation, not-found, unexpected — uses this shape, so the
- * readable, field-scoped messages are in `error.details`.  A bare FastAPI
- * `{ "detail": ... }` body is understood as a fallback, and anything else returns
- * `null` instead of throwing.
+ * Read the error envelope produced by `backend/app/api/errors.py`.  A bare FastAPI
+ * `{ "detail": ... }` body is understood as a fallback; anything else returns `null`.
  */
 function readErrorEnvelope(body: unknown): ParsedApiError | null {
   if (!body || typeof body !== 'object') return null
@@ -178,9 +196,9 @@ function readErrorEnvelope(body: unknown): ParsedApiError | null {
 const FIELD_PATH = /^[A-Za-z0-9_.[\]]+$/
 
 /**
- * Split `"<field path>: <message>"` details into a field → message map so a form
- * can render each message next to its control.  Entries without a field path (such
- * as the trailing "…and N further…" summary) are left on `NyxApiError.details`.
+ * Split `"<field path>: <message>"` details into a field → message map so a form can
+ * render each message next to its control.  Entries without a field path (such as the
+ * trailing "…and N further…" summary) are left on `NyxApiError.details`.
  */
 export function fieldErrorMap(details: readonly string[]): Record<string, string> {
   const map: Record<string, string> = {}
@@ -206,16 +224,16 @@ export const api = {
       method: 'POST',
       headers: json,
       body: JSON.stringify(payload),
-      timeoutMs: 60_000,
+      timeoutMs: ANALYSIS_TIMEOUT_MS,
     }),
 
-  /** `POST /api/analyze/export` renders the report inline and returns it directly. */
-  exportResult: (payload: AnalysisExportRequest) =>
-    request<{ format: ExportFormat; filename: string; content: string }>('/api/analyze/export', {
+  /** Render a report for an analysis that is not saved (nothing is persisted). */
+  exportAnalysis: (payload: AnalysisExportRequest) =>
+    request<ExportEnvelope>('/api/analyze/export', {
       method: 'POST',
       headers: json,
       body: JSON.stringify(payload),
-      timeoutMs: 60_000,
+      timeoutMs: ANALYSIS_TIMEOUT_MS,
     }),
 
   listProjects: (limit = 50, offset = 0) =>
@@ -223,7 +241,12 @@ export const api = {
   projectStats: () => request<ProjectStats>('/api/projects/stats'),
   getProject: (id: string) => request<ProjectDetail>(`/api/projects/${encodeURIComponent(id)}`),
   createProject: (payload: ProjectCreateRequest) =>
-    request<ProjectDetail>('/api/projects', { method: 'POST', headers: json, body: JSON.stringify(payload) }),
+    request<ProjectDetail>('/api/projects', {
+      method: 'POST',
+      headers: json,
+      body: JSON.stringify(payload),
+      timeoutMs: ANALYSIS_TIMEOUT_MS,
+    }),
   updateProject: (id: string, payload: ProjectUpdateRequest) =>
     request<ProjectDetail>(`/api/projects/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -232,15 +255,15 @@ export const api = {
     }),
   deleteProject: (id: string) =>
     request<{ deleted: boolean; id: string }>(`/api/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  /** Stored project → JSON export envelope (`{ filename, format, content }`). */
+  exportProjectJson: (id: string) =>
+    request<ExportEnvelope>(`/api/projects/${encodeURIComponent(id)}/export.json`),
+  /** Stored project → Markdown report text. */
+  exportProjectMarkdown: (id: string) => requestText(`/api/projects/${encodeURIComponent(id)}/report.md`),
 }
 
-/** Direct download links (the browser handles these, so no fetch/JSON round trip). */
-export const downloadUrls = {
-  projectJson: (id: string) => `${API_BASE}/api/projects/${encodeURIComponent(id)}/export.json`,
-  projectMarkdown: (id: string) => `${API_BASE}/api/projects/${encodeURIComponent(id)}/report.md`,
-}
-
-/** Save a server-rendered text payload as a file without any extra dependency. */
+/** Save a text payload as a file without any extra dependency. */
 export function saveTextFile(filename: string, content: string, mime = 'application/json') {
   const blob = new Blob([content], { type: `${mime};charset=utf-8` })
   const url = URL.createObjectURL(blob)
@@ -253,3 +276,5 @@ export function saveTextFile(filename: string, content: string, mime = 'applicat
   // Revoking immediately can cancel the download in some browsers.
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
+
+export type { ExportFormat }

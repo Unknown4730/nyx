@@ -185,7 +185,7 @@ class SecurityAnalyzer:
                     references=[
                         "NYX security rule "
                         + code
-                        + " (docs/PROJECT_REPORT.md — Security analysis method)"
+                        + " (docs/METHODOLOGY.md — Security analysis method)"
                     ],
                 )
             )

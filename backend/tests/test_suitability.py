@@ -137,7 +137,7 @@ def test_heavy_missing_evidence_forces_further_assessment():
     assert (outcome, provisional) == (report.outcome, True)
 
 
-def test_band_boundaries_are_exhaustive_and_monotonic():
+def test_band_boundaries_are_ordered_and_monotonic():
     thresholds = [minimum for minimum, _ in BANDS]
     assert thresholds == sorted(thresholds, reverse=True)
     assert thresholds[0] > thresholds[-1] == 0.0

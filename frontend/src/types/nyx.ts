@@ -1,9 +1,7 @@
 /**
  * Hand-written types for the descriptive endpoints (`/api/meta`, `/api/ai/status`),
- * for client-only view models, and for the one analysis-contract type the schema
- * generator does not emit yet (`AnalysisExportRequest` — see the Cycle 0a report).
- * Everything else in the analysis contract lives in `./analysis.ts`, which is
- * generated from the backend Pydantic models.
+ * for client-only view models.  Everything in the analysis contract lives in
+ * `./analysis.ts`, which is generated from the backend Pydantic models.
  */
 import type {
   AiStatusPayload,
@@ -60,6 +58,8 @@ export interface SuitabilityBandInfo {
 export interface SuitabilityMeta {
   bands: SuitabilityBandInfo[]
   weight_rationale: string
+  /** Share of workload weight that may lack evidence before the verdict is withheld. */
+  missing_weight_limit: number
   factors?: { id: string; name: string; weight: number }[]
 }
 
@@ -88,9 +88,11 @@ export interface CatalogMeta {
 }
 
 export interface Limits {
-  description_max_chars: number
-  name_max_chars: number
-  additional_requirements_max_chars: number
+  name_min_chars: number | null
+  name_max_chars: number | null
+  description_min_chars: number | null
+  description_max_chars: number | null
+  additional_requirements_max_chars: number | null
   max_operations_per_view: { min: number; max: number; default: number }
 }
 
@@ -321,7 +323,7 @@ export function toRequest(draft: RequirementDraft, options: AnalysisOptions): An
     traffic_pattern: draft.traffic_pattern === 'unknown' ? null : (draft.traffic_pattern as ApplicationRequirements['traffic_pattern']),
     application_type: (draft.application_type || 'unknown') as ApplicationRequirements['application_type'],
     availability: draft.availability === 'unknown' ? null : (draft.availability as ApplicationRequirements['availability']),
-    budget: draft.budget === 'balanced' && !draft.budget ? null : (draft.budget as ApplicationRequirements['budget']),
+    budget: draft.budget === 'unknown' ? null : (draft.budget as ApplicationRequirements['budget']),
     preferred_provider: draft.preferred_provider === 'none' ? null : (draft.preferred_provider as ApplicationRequirements['preferred_provider']),
     data_storage: toStorageKinds(draft.data_storage),
     additional_requirements: draft.additional_requirements.trim() ? draft.additional_requirements.trim() : null,
@@ -363,21 +365,9 @@ export function toDraft(requirements: ApplicationRequirements): RequirementDraft
  */
 export type ExportFormat = 'json' | 'markdown'
 
-/**
- * Body of `POST /api/analyze/export` — an analysis request plus the wanted format,
- * mirroring `AnalysisExportRequest` in `backend/app/schemas/analysis.py`.
- *
- * `backend/scripts/export_typescript_schema.py` does not list
- * `AnalysisExportRequest` in its `ROOT_MODELS`, so the model is missing from the
- * generated `./analysis.ts`.  Deriving the type from the generated
- * `AnalysisRequest` keeps the requirements/options shape generated (single source
- * of truth) while the generator is corrected by its owner.
- */
-export type AnalysisExportRequest = AnalysisRequest & { format?: ExportFormat }
-
+/** `{ format, filename, content }` — what the export endpoints return (`backend/app/api/routes`). */
 export interface ExportEnvelope {
-  format: 'json' | 'markdown'
+  format: ExportFormat
   filename: string
   content: string
-  export: { generator: string; schema_version: string; analysis_id: string; [key: string]: unknown }
 }

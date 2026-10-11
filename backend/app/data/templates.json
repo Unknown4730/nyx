@@ -1,0 +1,135 @@
+{
+  "version": "2026.10",
+  "description": "Sample project templates. A template is a prefilled requirements form only: running it executes the same deterministic pipeline as a hand-typed description. No verdict is stored here.",
+  "templates": [
+    {
+      "id": "college-attendance",
+      "name": "College Attendance Portal",
+      "tagline": "Daily attendance marking for a campus of students and faculty.",
+      "icon": "ClipboardCheck",
+      "summary": "A campus web portal where faculty mark attendance and students review their records, with predictable daytime usage.",
+      "highlights": [
+        "Predictable daytime traffic",
+        "Relational records with audit needs",
+        "Small, staff-facing user base"
+      ],
+      "expected_outcome_hint": "Usually a good candidate for managed services, with a small API and scheduled reports.",
+      "description": "A college attendance portal for about 3000 students and 150 faculty members. Faculty mark daily attendance for their classes, students view their own records and percentages, and administrators export monthly reports. Usage is steady during class hours with light peaks at the start of each lecture slot. Data is relational: courses, enrolments, sessions and attendance marks, with an audit trail of who changed what.",
+      "expected_users": 3150,
+      "traffic_pattern": "diurnal",
+      "application_type": "web_app",
+      "data_storage": [
+        "relational",
+        "object_storage"
+      ],
+      "availability": "standard",
+      "budget": "minimize",
+      "preferred_provider": null,
+      "additional_requirements": "Login through the institution's existing identity provider; keep an audit trail of attendance edits."
+    },
+    {
+      "id": "online-examination",
+      "name": "Online Examination Platform",
+      "tagline": "Timed assessments for large cohorts with spiky start times.",
+      "icon": "Timer",
+      "summary": "A examination platform where students sit timed papers simultaneously, creating sharp bursts at scheduled start times.",
+      "highlights": [
+        "Bursty scheduled sessions",
+        "Strict integrity and availability needs",
+        "Authenticated API"
+      ],
+      "expected_outcome_hint": "Serverless components suit submissions and grading; the live exam session path needs careful review.",
+      "description": "An online examination platform for up to 10000 students. Exams are scheduled in fixed time windows, so many students start and submit at the same moment, then traffic falls back to near zero. Each attempt is timed, answers are saved periodically, submissions must not be lost, and results are published after grading. Data is relational for questions, attempts and results, with uploaded attachments and a question bank.",
+      "expected_users": 10000,
+      "traffic_pattern": "spiky_event_driven",
+      "application_type": "examination_platform",
+      "data_storage": [
+        "relational",
+        "object_storage",
+        "cache_session"
+      ],
+      "availability": "high",
+      "budget": "balanced",
+      "preferred_provider": null,
+      "additional_requirements": "Answers must be saved every 30 seconds; a submission must never be lost during a network interruption."
+    },
+    {
+      "id": "ecommerce-application",
+      "name": "Online Store",
+      "tagline": "A product catalogue, cart and checkout for a mid-sized retailer.",
+      "icon": "ShoppingBag",
+      "summary": "A retail storefront with a browsable catalogue, carts, card payments and order notifications, with seasonal peaks.",
+      "highlights": [
+        "Seasonal peaks",
+        "Payments and order integrity",
+        "Product search and media"
+      ],
+      "expected_outcome_hint": "A strong candidate for managed and serverless edge, catalogue and event-driven order processing.",
+      "description": "An online store selling about 5000 products to roughly 80000 registered customers. Shoppers browse and search the catalogue, keep carts, and check out with card payments through an external payment provider. Orders trigger confirmation emails and stock updates. Traffic is steady on weekdays and spikes during seasonal sales. Product images are stored as objects; orders and inventory are transactional.",
+      "expected_users": 80000,
+      "traffic_pattern": "spiky_event_driven",
+      "application_type": "ecommerce",
+      "data_storage": [
+        "relational",
+        "object_storage",
+        "search_index",
+        "cache_session"
+      ],
+      "availability": "high",
+      "budget": "balanced",
+      "preferred_provider": null,
+      "additional_requirements": "Card data is handled by the payment provider only; the platform must not store card numbers."
+    },
+    {
+      "id": "food-delivery-platform",
+      "name": "Food Delivery Platform",
+      "tagline": "Restaurant ordering with live courier location updates.",
+      "icon": "Bike",
+      "summary": "A mobile-first ordering service connecting customers, restaurants and couriers, with real-time location updates during deliveries.",
+      "highlights": [
+        "Mobile clients",
+        "Real-time courier telemetry",
+        "Evening and lunch peaks"
+      ],
+      "expected_outcome_hint": "Event-driven order handling fits serverless well; continuous location streams need separate review.",
+      "description": "A food delivery platform with a mobile app for customers and couriers and a web dashboard for restaurants. About 200000 registered users place orders at lunch and dinner peaks. Couriers send location updates every few seconds during deliveries, customers track progress, and restaurants receive order notifications. Order and payment records are relational; location history is time-series data kept for 30 days.",
+      "expected_users": 200000,
+      "traffic_pattern": "spiky_event_driven",
+      "application_type": "logistics_marketplace",
+      "data_storage": [
+        "relational",
+        "time_series",
+        "cache_session"
+      ],
+      "availability": "high",
+      "budget": "performance_first",
+      "preferred_provider": null,
+      "additional_requirements": "Customers must see courier position updates within about 5 seconds; push notifications are required for order status changes."
+    },
+    {
+      "id": "file-processing-pipeline",
+      "name": "Document Processing Pipeline",
+      "tagline": "Upload, transform and report on batches of documents.",
+      "icon": "FileCog",
+      "summary": "An internal service that accepts uploaded document batches, processes them step by step and renders PDF reports. Several operating characteristics have not been measured yet.",
+      "highlights": [
+        "Asynchronous file processing",
+        "Generated PDF reports",
+        "Several open operating questions"
+      ],
+      "expected_outcome_hint": "Deliberately under-specified: the verdict is provisional until processing times, state sharing, traffic and availability are answered.",
+      "description": "An internal tool used by about 400 staff to upload batches of scanned forms, extract the fields and check them against reference data. Each file goes through a processing step, and PDF rendering produces the reports for review. The team has not measured processing times, whether steps share intermediate state, how many database connections a batch needs, or when batches arrive. Results are stored as files, with metadata in a relational database.",
+      "expected_users": 400,
+      "traffic_pattern": null,
+      "application_type": "batch_processing",
+      "data_storage": [
+        "object_storage",
+        "relational"
+      ],
+      "availability": null,
+      "budget": "minimize",
+      "preferred_provider": null,
+      "additional_requirements": "Retain processed files for seven years for audit purposes."
+    }
+  ]
+}
