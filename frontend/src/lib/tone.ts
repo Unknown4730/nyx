@@ -157,7 +157,7 @@ export const DIAGRAM_COLOUR = {
   textMuted: '#777D9C',
   connection: '#73D9FF',
   asyncConnection: '#B9A0FF',
-  optionalConnection: '#777D9C',
+  optionalConnection: '#A5A9C5', // raised from muted to meet the 3:1 non-text contrast rule
   trustBoundary: '#FF8DA1',
   labelBackground: '#080911',
 } as const

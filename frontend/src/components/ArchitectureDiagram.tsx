@@ -110,7 +110,7 @@ function serviceFor(component: Component, provider: CloudProvider): string | nul
 function connectionStyle(connection: Connection): { dash?: string; stroke: string; opacity: number } {
   if (connection.crosses_trust_boundary) return { stroke: C.trustBoundary, opacity: 0.9, dash: undefined }
   if (connection.async_delivery) return { stroke: C.asyncConnection, opacity: 0.9, dash: '7 5' }
-  if (connection.optional) return { stroke: C.optionalConnection, opacity: 0.75, dash: '2 4' }
+  if (connection.optional) return { stroke: C.optionalConnection, opacity: 0.85, dash: '2 4' }
   return { stroke: C.connection, opacity: 0.7 }
 }
 
@@ -172,7 +172,7 @@ export function ArchitectureDiagram({
               rx={18}
               fill="none"
               stroke={C.trustBoundary}
-              strokeOpacity={0.5}
+              strokeOpacity={0.9}
               strokeDasharray="6 6"
               strokeWidth={1.5}
             />
@@ -188,8 +188,7 @@ export function ArchitectureDiagram({
         const to = layout.positions[connection.target]
         if (!from || !to) return null
         const style = connectionStyle(connection)
-        const { d, mid } = edgePath(from, to)
-        const label = connection.label ? clip(connection.label, 30) : null
+        const { d } = edgePath(from, to)
         return (
           <g key={connection.id} data-testid="connection">
             <path
@@ -203,14 +202,24 @@ export function ArchitectureDiagram({
             >
               <title>{connection.label ?? `${connection.source} → ${connection.target}`}</title>
             </path>
-            {label ? (
-              <g transform={`translate(${mid.x} ${mid.y})`}>
-                <rect x={-(label.length * 3.3 + 8)} y={-10} width={label.length * 6.6 + 16} height={18} rx={9} fill={C.labelBackground} fillOpacity={0.9} stroke={C.nodeBorder} />
-                <text textAnchor="middle" y={3} fontSize={11} fill={C.text} fillOpacity={0.9} fontFamily="Inter, system-ui, sans-serif">
-                  {label}
-                </text>
-              </g>
-            ) : null}
+          </g>
+        )
+      })}
+
+      {/* Labels are drawn after every path so no later edge can cross an opaque label pill. */}
+      {connections.map((connection) => {
+        const from = layout.positions[connection.source]
+        const to = layout.positions[connection.target]
+        if (!from || !to) return null
+        const label = connection.label ? clip(connection.label, 30) : null
+        if (!label) return null
+        const { mid } = edgePath(from, to)
+        return (
+          <g key={`${connection.id}-label`} transform={`translate(${mid.x} ${mid.y})`}>
+            <rect x={-(label.length * 3.3 + 8)} y={-10} width={label.length * 6.6 + 16} height={18} rx={9} fill={C.labelBackground} fillOpacity={1} stroke={C.nodeBorder} />
+            <text textAnchor="middle" y={3} fontSize={11} fill={C.text} fillOpacity={0.9} fontFamily="Inter, system-ui, sans-serif">
+              {label}
+            </text>
           </g>
         )
       })}

@@ -141,6 +141,32 @@ describe('results', () => {
     expect(diagram).toHaveAttribute('aria-label', expect.stringMatching(/components/))
   })
 
+  it('zoom steps through the readable scales and stops at both ends', async () => {
+    const user = userEvent.setup()
+    mockApi()
+    await openResults(user)
+    await user.click(screen.getByRole('tab', { name: 'Architecture' }))
+    await screen.findByTestId('architecture-svg')
+    expect(screen.getByText('100%')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(screen.getByText('80%')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(screen.getByText('60%')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Zoom in' }))
+    expect(screen.getByText('80%')).toBeInTheDocument()
+  })
+
+  it('selecting a component shows its details in the inspector', async () => {
+    const user = userEvent.setup()
+    mockApi()
+    await openResults(user)
+    await user.click(screen.getByRole('tab', { name: 'Architecture' }))
+    const node = (await screen.findAllByTestId('diagram-node'))[0]
+    await user.click(node)
+    expect(await screen.findByTestId('inspector')).toBeInTheDocument()
+  })
+
   it('saves the analysis as a project and says so', async () => {
     const user = userEvent.setup()
     const { calls } = mockApi()

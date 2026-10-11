@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
 import { Chip, Disclosure, Panel, SectionHeading, TD, TH, Table } from '@/components/ui'
@@ -9,6 +9,8 @@ import type { AnalysisResult, CloudProvider, Component } from '@/types/analysis'
 
 const PROVIDERS: CloudProvider[] = ['aws', 'gcp', 'azure']
 const ZOOM_STEPS = [0.6, 0.8, 1, 1.25]
+/** Below this width the inspector is stacked under the diagram rather than beside it. */
+const STACKED_QUERY = '(max-width: 1279px)'
 
 function label(view: string): string {
   if (view === 'conventional') return CONVENTIONAL_LABEL
@@ -124,6 +126,20 @@ export function ArchitecturePanel({ result }: { result: AnalysisResult }) {
   const { graph, view, setView, provider, setProvider, selectedId, select, selectedComponent } = useNyx()
   const [zoomIndex, setZoomIndex] = useState(2)
   const zoom = ZOOM_STEPS[zoomIndex] ?? 1
+  const inspectorRef = useRef<HTMLDivElement>(null)
+  const lastSelected = useRef<string | null>(null)
+
+  // On stacked layouts the inspector sits below the diagram. After a user selects a
+  // node, bring the inspector into view so the tap has a visible result. The first
+  // render and a cleared selection do not move the page.
+  useEffect(() => {
+    const previous = lastSelected.current
+    lastSelected.current = selectedId
+    if (!selectedId || selectedId === previous) return
+    if (typeof window === 'undefined' || !window.matchMedia?.(STACKED_QUERY).matches) return
+    inspectorRef.current?.scrollIntoView({ block: 'start' })
+  }, [selectedId])
+
 
   if (!graph) {
     return (
@@ -148,7 +164,7 @@ export function ArchitecturePanel({ result }: { result: AnalysisResult }) {
           description={graph.summary}
           action={
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Diagram options">
-              <div className="flex rounded-xl border border-chalk/10 bg-obsidian/60 p-1" role="tablist" aria-label="Architecture view">
+              <div className="nyx-scroll-x flex max-w-full rounded-xl border border-chalk/10 bg-obsidian/60 p-1" role="tablist" aria-label="Architecture view">
                 {views.map((id) => (
                   <button
                     key={id}
@@ -220,6 +236,7 @@ export function ArchitecturePanel({ result }: { result: AnalysisResult }) {
               idPrefix={`diagram-${graph.id}`}
             />
           </div>
+          <p className="mt-3 px-1 text-2xs text-silver md:hidden">Swipe sideways inside the diagram to see every component, or use the text alternative below.</p>
           <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 px-1 text-2xs text-silver" aria-label="Legend">
             <li>Dashed violet: asynchronous delivery</li>
             <li>Dotted muted: optional path</li>
@@ -228,9 +245,11 @@ export function ArchitecturePanel({ result }: { result: AnalysisResult }) {
         </Panel>
         <div className="xl:sticky xl:top-6 xl:self-start">
           <Panel>
+            <div ref={inspectorRef} className="scroll-mt-6">
             <p className="nyx-eyebrow">Inspector</p>
             <div className="mt-3">
               <Inspector component={selectedComponent} provider={provider} view={graph.id} />
+            </div>
             </div>
           </Panel>
         </div>
