@@ -24,7 +24,7 @@ from app.schemas.analysis import (
 )
 from app.schemas.common import CloudProvider, ProjectKind
 from app.services.pipeline import get_pipeline
-from app.services.report_generator import to_json, to_markdown
+from app.services.report_generator import export_filename, to_json, to_markdown
 
 logger = logging.getLogger("nyx.routes.projects")
 
@@ -120,19 +120,21 @@ def delete_project(project_id: str) -> dict[str, Any]:
 def export_json(project_id: str) -> JSONResponse:
     result = _store().get(project_id).result
     content = to_json(result)
+    filename = export_filename(result, "json")
     return JSONResponse(
-        content={"filename": _filename(project_id, "json"), "format": "json", "content": content},
-        headers={"Content-Disposition": f'attachment; filename="nyx-{project_id}.json"'},
+        content={"filename": filename, "format": "json", "content": content},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @router.get("/projects/{project_id}/report.md", response_class=PlainTextResponse)
 def export_markdown(project_id: str) -> PlainTextResponse:
     result = _store().get(project_id).result
+    filename = export_filename(result, "md")
     return PlainTextResponse(
         to_markdown(result),
         media_type="text/markdown; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="nyx-{project_id}.md"'},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -180,5 +182,3 @@ def project_graph(
     }
 
 
-def _filename(project_id: str, extension: str) -> str:
-    return f"nyx-report-{project_id}.{extension}"

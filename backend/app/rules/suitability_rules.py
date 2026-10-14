@@ -5,8 +5,7 @@ This module owns, and is the *only* place that owns:
 * the workload factor table (`WORKLOAD_FACTORS`) and the component factor weights
   (`COMPONENT_FACTOR_WEIGHTS`),
 * the score formula and the band thresholds (`BANDS`),
-* the evidence-quality gates (`MISSING_WEIGHT_LIMIT`,
-  `COMPONENT_MISSING_WEIGHT_LIMIT`),
+* the workload evidence gate (`MISSING_WEIGHT_LIMIT`),
 * the rule-pack version (`RULE_PACK_VERSION`).
 
 It is a pure rule pack: it imports nothing but the schemas, performs no I/O, no
@@ -61,20 +60,14 @@ RULE_PACK_VERSION = "2026.10"
 #: indefensible.
 MISSING_WEIGHT_LIMIT = 0.30
 
-#: Component-level evidence gate, applied by `component_score_and_outcome`.
-#:
-#: NOTE FOR REVIEWERS — this gate is currently unreachable.  A component is scored
-#: on the six `COMPONENT_FACTOR_WEIGHTS` factors, and of those only `duration` can
-#: ever be recorded as `missing` (see `evaluate_component`); its weight is 0.26.
-#: The maximum component-level missing weight is therefore 0.26 < 0.34, so this
-#: branch never fires and a component verdict is always taken from `band_for`.
-#: The value is preserved verbatim from the pre-consolidation implementation
-#: because lowering it to something reachable would change published component
-#: outcomes, `ComponentSuitability.provisional`, and — through the component
-#: targets — `recommended_pattern`.  That is a behaviour change requiring an
-#: explicit project-owner decision, not a refactor.  See
-#: `docs/backend/SUITABILITY_ENGINE.md` → "Known limitations".
-COMPONENT_MISSING_WEIGHT_LIMIT = 0.34
+#: Component verdicts have no separate evidence gate.  A component is scored on the
+#: six `COMPONENT_FACTOR_WEIGHTS` factors and only `duration` can ever be recorded as
+#: `missing` (see `evaluate_component`), so the largest possible component missing
+#: weight is 0.26.  The former component gate (0.34) therefore could never fire and
+#: was removed in rule-pack 2026.10 maintenance; the exhaustive trait sweep in
+#: `tests/test_suitability_engine.py` fails if a new component factor can go missing,
+#: which is the signal to reintroduce a gate deliberately.  Published component
+#: outcomes are unchanged by the removal (proved by the same sweep).
 
 WEIGHT_RATIONALE = (
     "Weights prioritise the factors with the largest documented impact on serverless platform limits: "
@@ -828,14 +821,13 @@ def evaluate_component(
 
 
 def component_score_and_outcome(factors: list[FactorResult]) -> tuple[float, SuitabilityOutcome, list[str]]:
-    """Score one component and pick its band.
+    """Score one component and pick its band from the score alone.
 
-    The evidence gate here is `COMPONENT_MISSING_WEIGHT_LIMIT`; read the note on
-    that constant before changing it — it is deliberately not the workload gate.
+    There is no component-level evidence gate: the largest missing weight a component
+    can carry is 0.26 (see the note above `WEIGHT_RATIONALE`), so a verdict is always
+    taken from `band_for`.  Missing factor ids are returned for disclosure.
     """
-    score, missing_weight, missing_ids = score_from_factors(factors)
-    if missing_weight >= COMPONENT_MISSING_WEIGHT_LIMIT:
-        return score, SuitabilityOutcome.FURTHER_ASSESSMENT, missing_ids
+    score, _missing_weight, missing_ids = score_from_factors(factors)
     return score, band_for(score), missing_ids
 
 

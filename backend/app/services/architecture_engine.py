@@ -21,6 +21,7 @@ from app.rules.architecture_layout import layout_components
 from app.schemas.architecture import (
     ArchitectureGraph,
     Component,
+    ComponentPlan,
     ComponentTraits,
     Connection,
     MappingRow,
@@ -42,8 +43,8 @@ from app.schemas.common import (
     TransportSecurity,
 )
 from app.schemas.reports import ComponentSuitability, SuitabilityReport, WorkloadProfile
-from app.schemas.architecture import ComponentPlan
 from app.services.cloud_catalog import get_catalog
+from app.services.labels import readable
 
 MAX_NODES_DEFAULT = 14
 
@@ -181,7 +182,7 @@ class ArchitectureEngine:
         )
         parts = [
             f"{len(graph.components)} components, {functions} function-shaped and {resident} placed on a "
-            f"resident runtime. Workload class: {workload.classification.replace('_', ' ')}."
+            f"resident runtime. Workload class: {readable(workload.classification)}."
         ]
         parts.append(suitability.rationale)
         return " ".join(parts)

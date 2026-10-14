@@ -57,7 +57,27 @@ describe('API error envelope', () => {
     const failure = (await api.health().catch((cause: unknown) => cause)) as NyxApiError
     expect(failure.status).toBe(502)
     expect(failure.message).not.toMatch(/<html/i)
-    expect(failure.message).toBe('The API responded with 502.')
+    expect(failure.code).toBe('api_unreachable')
+    expect(failure.isUnreachable).toBe(true)
+    expect(failure.message).toMatch(/cannot reach its API/)
+  })
+
+  it('reports the Vite dev proxy failure (backend not running) as unreachable, not as a server error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('Error occurred while trying to proxy: localhost:8000/api/meta', { status: 500, headers: { 'content-type': 'text/plain' } })),
+    )
+    const failure = (await api.meta().catch((cause: unknown) => cause)) as NyxApiError
+    expect(failure.code).toBe('api_unreachable')
+    expect(failure.isUnreachable).toBe(true)
+    expect(failure.message).not.toMatch(/responded with 500/)
+  })
+
+  it('treats a silent non-JSON 500 (empty body from the dev proxy) as unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 500, headers: { 'content-type': 'text/plain' } })))
+    const failure = (await api.meta().catch((cause: unknown) => cause)) as NyxApiError
+    expect(failure.code).toBe('api_unreachable')
+    expect(failure.message).not.toMatch(/responded with 500/)
   })
 
   it('understands a bare FastAPI detail body as a fallback', async () => {

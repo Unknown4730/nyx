@@ -152,9 +152,39 @@ describe('results', () => {
     expect(screen.getByText('80%')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Zoom out' }))
     expect(screen.getByText('60%')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(screen.getByText('40%')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Zoom in' }))
-    expect(screen.getByText('80%')).toBeInTheDocument()
+    expect(screen.getByText('60%')).toBeInTheDocument()
+  })
+
+  it('Reset returns the diagram to the readable 100% scale, and Fit never leaves the scale range', async () => {
+    const user = userEvent.setup()
+    mockApi()
+    await openResults(user)
+    await user.click(screen.getByRole('tab', { name: 'Architecture' }))
+    await screen.findByTestId('architecture-svg')
+    await user.click(screen.getByRole('button', { name: 'Zoom out' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(screen.getByText('100%')).toBeInTheDocument()
+    // jsdom has no layout, so the viewport width is 0 and Fit falls back to the readable default.
+    await user.click(screen.getByRole('button', { name: 'Fit to width' }))
+    expect(screen.getByText('100%')).toBeInTheDocument()
+  })
+
+  it('shows every cost sensitivity row, including scenarios that share a driver name', async () => {
+    const user = userEvent.setup()
+    mockApi()
+    await openResults(user)
+    await user.click(screen.getByRole('tab', { name: 'Cost model' }))
+    const sensitivity = await screen.findByRole('table', { name: /sensitivity of the cost comparison/i })
+    const sample = (SAMPLE_RESULT.cost as { sensitivity: { low_label: string }[] }).sensitivity
+    const rows = within(sensitivity).getAllByRole('row').slice(1)
+    expect(rows).toHaveLength(sample.length)
+    for (const entry of sample) {
+      expect(within(sensitivity).getByText(entry.low_label)).toBeInTheDocument()
+    }
   })
 
   it('selecting a component shows its details in the inspector', async () => {

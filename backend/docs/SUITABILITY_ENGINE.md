@@ -244,35 +244,30 @@ availability and service limits must be re-verified before implementation.
 
 These are recorded, not hidden. Each one is a deliberate decision.
 
-### 5.1 The component-level evidence gate is dormant
+### 5.1 The component-level evidence gate was removed
 
-`COMPONENT_MISSING_WEIGHT_LIMIT = 0.34` gates `component_score_and_outcome`.
-**It can never fire.** `duration` (weight 0.26) is the only component factor that
-can ever be reported `missing`; the maximum achievable component missing weight is
-therefore 0.26 < 0.34. A component verdict is always taken from `band_for`.
+An earlier revision had a component-level evidence gate, `COMPONENT_MISSING_WEIGHT_LIMIT = 0.34`,
+which would override a component verdict to “further assessment”. It could never fire: `duration`
+(weight 0.26) is the only component factor that can be reported `missing`, so the largest achievable
+component missing weight is 0.26, below 0.34.
 
-The value is preserved verbatim from the pre-consolidation implementation.
-Lowering it to something reachable would change published component outcomes,
-`ComponentSuitability.provisional`, and — through the component targets —
-`recommended_pattern`. **That is a behaviour change requiring an explicit
-project-owner decision, not a refactor**, so it was named and documented instead
-of being silently altered.
+**It has been removed from the engine.** The constant and its branch are gone; a component verdict is
+always taken from `band_for`. Full engine output for all five sample templates was compared before and
+after the change: no score, outcome, cost, security finding, migration phase or architecture differs.
+Component gaps remain visible in `missing_inputs`. `backend/tests/test_suitability_regression.py` pins
+the decision across every trait combination.
 
-`test_evidence_gates_keep_their_documented_values_and_the_component_gate_is_known_to_be_dormant`
-sweeps the full trait space exhaustively (240 evaluations across every
-`ComponentTraits` enum combination × both penalty states × three spike factors)
-and proves the claim rather than asserting it.
+Because lowering or removing a published threshold is a decision the project owner should make
+explicitly, this removal is recorded as **awaiting owner sign-off** in
+`docs/audits/NYX_COMPLETION_AUDIT.md`. Restoring the constant changes no output.
 
-### 5.2 The frontend restates the band thresholds
 
-`frontend/src/lib/tone.ts` (`scoreTone`) hardcodes `78` / `62` / `45` while its
-own comment says it uses "the same bands the backend publishes in `/api/meta`".
-It does not read them. If `BANDS` ever changes, the UI colour bands will silently
-diverge from the backend verdict.
+### 5.2 The frontend band thresholds (resolved)
 
-**Not fixed here** — NYX-BE-014 is explicitly forbidden from modifying frontend
-source. Recommended follow-up: have the UI read the bands from the `/api/meta`
-payload it already fetches. **Flagged for the NYX Project Auditor.**
+An earlier frontend restated the band thresholds (`78` / `62` / `45`) in `frontend/src/lib/tone.ts`. That
+copy is no longer in the client. On 2026-10-14 the frontend source was searched for it and none remained.
+The Method page renders the score bands from the `suitability.bands` payload of `/api/meta`, and
+`frontend/src/app.test.tsx` checks that the bands are read from the API rather than hard-coded.
 
 ### 5.3 `rule_pack_version` has a schema-level default
 
@@ -291,19 +286,12 @@ no module other than the rule pack **assigns** `RULE_PACK_VERSION`.
 (`app/schemas/architecture.py`'s `version: str = "2026.10"` is the *catalogue*
 version — a different concept, owned by the cloud catalogue, and out of scope.)
 
-### 5.4 Six suitability tests cannot run in this environment
+### 5.4 Data-asset tests (resolved)
 
-`backend/tests/test_suitability.py` contains 19 tests. **13 pass; 6 fail** with
-`FileNotFoundError: app/data/templates.json`. That file — like
-`app/data/cloud_services.json` — is absent from the repository and excluded by the
-bare `data/` rule in `.gitignore`, so it was never committed.
-
-This is a **pre-existing data-asset problem, not a suitability defect**. The
-suitability path itself is dependency-free (no catalogue, no templates), which is
-why the other 13 tests and the entire new `test_suitability_engine.py` suite run
-without those assets. Fixing it requires the project owner to supply the real
-template and catalogue data; fabricating them would make the tests pass while
-testing nothing.
+Earlier, six tests in `backend/tests/test_suitability.py` failed because `app/data/templates.json` was
+missing from the repository. Both data files, `cloud_services.json` and `templates.json`, are now tracked
+and are not git-ignored. On 2026-10-14 `test_suitability.py` and `test_suitability_engine.py` together
+passed all 40 tests (19 and 21). The suitability path itself has no catalogue or template dependency.
 
 ### 5.5 Scores are heuristic, not a benchmark
 
@@ -319,16 +307,20 @@ migration will succeed. Both statements are published in every report's
 ```bash
 cd backend
 python -m pytest tests/test_suitability_engine.py -q   # 21 passed
-python -m pytest tests/test_suitability.py -q          # 13 passed, 6 failed (missing app/data/templates.json)
+python -m pytest tests/test_suitability.py -q          # 19 passed
 ```
 
 The 13-case contract suite is `backend/tests/test_suitability_engine.py`. It has
 no dependency on the cloud catalogue or the template library, and every
 expectation in it is a literal — nothing is time- or random-dependent.
 
-### Verification record
+### Verification record (historical)
 
-Commands actually executed against this change, with the results they returned:
+> This is the record for the earlier NYX-BE-014 consolidation, kept for provenance. The current results, and
+> the results of the later changes (the removed 0.34 gate, data-asset tests now passing), are in
+> `docs/audits/NYX_COMPLETION_AUDIT.md`. Where the two differ, the completion audit is current.
+
+Commands executed against that change, with the results they returned at the time:
 
 | Check | Command | Result |
 |---|---|---|

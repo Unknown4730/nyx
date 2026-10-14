@@ -13,13 +13,13 @@ from typing import Any
 from app.rules import requirement_rules as rules
 from app.schemas.ai import AiExtractionProposal
 from app.schemas.common import (
+    ApplicationType,
     AvailabilityExpectation,
     BudgetPreference,
     CloudProvider,
     DataStorageKind,
     FieldBasis,
     TrafficPattern,
-    ApplicationType,
 )
 from app.schemas.requirements import (
     ApplicationRequirements,
@@ -29,6 +29,7 @@ from app.schemas.requirements import (
     OpenQuestion,
     RequirementSignals,
 )
+from app.services.labels import readable, traffic_pattern_phrase
 
 DATASET_HINT_RE = re.compile(
     r"(database|dataset|data (?:volume|size|warehouse)|total (?:data|storage)|archive|retention of)"
@@ -237,7 +238,7 @@ class RequirementExtractionService:
         }
         field_name = mapping.get(kind)
         if field_name and not signals.is_established(field_name):
-            signals.set_field(field_name, True, basis, f"Selected storage profile: {kind.value.replace('_', ' ')}.")
+            signals.set_field(field_name, True, basis, f"Selected storage profile: {readable(kind)}.")
             matched.append(f"storage.{kind.value}")
 
     def _derive_capacity(
@@ -297,7 +298,7 @@ class RequirementExtractionService:
                 value,
                 FieldBasis.DEFAULT,
                 "Default response-time estimate for the detected application type "
-                f"({requirements.application_type.value.replace('_', ' ')}), used for duration-sensitive rules.",
+                f"({readable(requirements.application_type)}), used for duration-sensitive rules.",
             )
             matched.append("derive.typical_response_ms")
 
@@ -307,8 +308,8 @@ class RequirementExtractionService:
                 "peak_requests_per_minute",
                 max(1, int(round(average_per_minute * peak_ratio))),
                 FieldBasis.DEFAULT,
-                f"Average {average_per_minute:.1f} req/min x peak factor {peak_ratio:g} for the "
-                f"{pattern.value.replace('_', ' ')} pattern.",
+                f"Average {average_per_minute:.1f} req/min x peak factor {peak_ratio:g} for "
+                f"{traffic_pattern_phrase(pattern)}.",
             )
             matched.append("derive.peak_rpm")
 
@@ -333,8 +334,8 @@ class RequirementExtractionService:
                 "peak_concurrency",
                 max(1, int(round(users * share))),
                 FieldBasis.DEFAULT,
-                f"Assumed {share:.0%} of users active simultaneously under a "
-                f"{pattern.value.replace('_', ' ')} pattern (no request volume stated to derive from).",
+                f"Assumed {share:.0%} of users active simultaneously under "
+                f"{traffic_pattern_phrase(pattern)} (no request volume stated to derive from).",
             )
             matched.append("derive.peak_concurrency.share")
 
@@ -364,8 +365,7 @@ class RequirementExtractionService:
             if basis == FieldBasis.DEFAULT:
                 note = signals.notes.get(name, "")
                 add(
-                    f"`{name}` was not stated; the engine used {type(signals).model_fields[name].default!r} "
-                    f"→ {getattr(signals, name)!r}. {note}".strip(),
+                    f"`{name}` was not stated; the engine assumed {getattr(signals, name)!r}. {note}".strip(),
                     FieldBasis.DEFAULT,
                     "medium",
                     name,

@@ -196,3 +196,13 @@ def test_options_enum_coercion_from_api_strings(client, analysis_payload):
     ).json()
     assert body["default_provider"] == "azure"
     assert CloudProvider("aws") in AnalysisResult.model_validate(body).providers
+
+
+def test_malformed_json_body_gets_a_readable_validation_envelope(client):
+    """A body that is not JSON must be reported as such, without a meaningless location."""
+    response = client.post("/api/analyze", content=b"not json", headers={"content-type": "application/json"})
+    assert response.status_code == 422
+    error = response.json()["error"]
+    assert error["code"] == "INVALID_REQUEST"
+    assert error["details"] == ["body: the request body is not valid JSON."]
+    assert "Traceback" not in response.text

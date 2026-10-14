@@ -258,7 +258,8 @@ export function NyxProvider({ children }: { children: ReactNode }) {
     setError(null)
     setFieldErrors({})
     try {
-      const payload = toRequest(draft, options)
+      // AI is only requested when the backend reports an endpoint; otherwise the request says so.
+      const payload = toRequest(draft, { ...options, use_ai: options.use_ai && Boolean(meta?.ai.configured) })
       const next = await api.analyze(payload)
       setResult(next)
       setProvider(next.default_provider ?? 'aws')
@@ -278,7 +279,7 @@ export function NyxProvider({ children }: { children: ReactNode }) {
       }
       return null
     }
-  }, [draft, options, persist])
+  }, [draft, options, persist, meta])
 
   const openProject = useCallback(
     async (id: string) => {

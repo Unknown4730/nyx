@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 
 from app.schemas.analysis import AnalysisExportRequest, AnalysisRequest, AnalysisResult
 from app.services.pipeline import get_pipeline
-from app.services.report_generator import to_json, to_markdown
+from app.services.report_generator import export_filename, to_json, to_markdown
 
 logger = logging.getLogger("nyx.routes.analysis")
 
@@ -40,16 +40,10 @@ def analyze_export(payload: AnalysisExportRequest) -> JSONResponse:
     return JSONResponse(
         {
             "format": payload.format,
-            "filename": _filename(result, extension),
+            "filename": export_filename(result, extension),
             "content": content,
         }
     )
-
-
-def _filename(result: AnalysisResult, extension: str) -> str:
-    safe = "".join(character if character.isalnum() or character in "-_" else "-" for character in result.title)
-    stem = safe[:48].strip("-").lower() or "analysis"
-    return f"nyx-report-{stem}.{extension}"
 
 
 __all__ = ["router"]

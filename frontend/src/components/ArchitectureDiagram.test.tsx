@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { ArchitectureDiagram, clip, computeLayout, edgePath, NODE_HEIGHT, NODE_WIDTH } from '@/components/ArchitectureDiagram'
+import { ArchitectureDiagram, clip, computeLayout, edgePath, NODE_HEIGHT, NODE_WIDTH, wrapLines } from '@/components/ArchitectureDiagram'
 import type { ArchitectureGraph } from '@/types/analysis'
 import sample from '@/test/fixtures/sample-analysis.json'
 
@@ -104,5 +104,24 @@ describe('ArchitectureDiagram rendering', () => {
     expect(screen.getAllByTestId('trust-boundary')).toHaveLength(proposed.trust_boundaries?.length ?? 0)
     expect(screen.getAllByTestId('connection')).toHaveLength(proposed.connections?.length ?? 0)
     expect(container.querySelector('[data-node-id="client"]')).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('wrapLines', () => {
+  it('keeps a long label whole across two lines instead of cutting it', () => {
+    const lines = wrapLines('Managed API surface (routes and throttling)', 26, 2)
+    expect(lines).toEqual(['Managed API surface', '(routes and throttling)'])
+    expect(lines.join(' ')).not.toMatch(/…/)
+  })
+
+  it('only shortens text that still does not fit after the allowed lines', () => {
+    const lines = wrapLines('one two three four five six seven eight nine ten eleven twelve', 20, 2)
+    expect(lines).toHaveLength(2)
+    expect(lines.every((line) => line.length <= 20)).toBe(true)
+    expect(lines[1].endsWith('…')).toBe(true)
+  })
+
+  it('leaves a short label on one line', () => {
+    expect(wrapLines('Edge CDN', 26, 2)).toEqual(['Edge CDN'])
   })
 })

@@ -82,8 +82,8 @@ def test_every_component_combination_scores_in_range_with_a_band_verdict():
     assert checked == 2 ** len(BOOLEAN_TRAITS) * len(ComponentRuntime) * len(DurationProfile)
 
 
-def test_the_component_missing_weight_limit_is_documented_as_unreachable():
-    """The old 0.34 override could never fire.
+def test_the_component_missing_weight_is_bounded_by_the_duration_weight():
+    """The former 0.34 component gate was removed because it could never fire.
 
     Only `duration` can lack evidence at component level, so the largest possible
     missing weight is that factor's weight.  This test makes that arithmetic explicit.
@@ -93,7 +93,7 @@ def test_the_component_missing_weight_limit_is_documented_as_unreachable():
         for traits in _all_trait_combinations()
     )
     assert largest == pytest.approx(COMPONENT_FACTOR_WEIGHTS["duration"])
-    assert largest < 0.34
+    assert largest == pytest.approx(0.26)
 
 
 def test_component_missing_inputs_are_reported_but_do_not_override_the_band():

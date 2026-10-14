@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
+import { ArchitectureDiagram, computeLayout } from '@/components/ArchitectureDiagram'
 import { Chip, Disclosure, Panel, SectionHeading, TD, TH, Table } from '@/components/ui'
 import { useNyx } from '@/state/NyxProvider'
 import { CONVENTIONAL_LABEL, DEPLOYMENT_LABEL, PROPOSED_LABEL, PROVIDER_ACCENT, TIER_LABELS } from '@/lib/tone'
@@ -8,7 +8,11 @@ import { humanise } from '@/lib/format'
 import type { AnalysisResult, CloudProvider, Component } from '@/types/analysis'
 
 const PROVIDERS: CloudProvider[] = ['aws', 'gcp', 'azure']
-const ZOOM_STEPS = [0.6, 0.8, 1, 1.25]
+/** Diagram scales. 100% is the readable default; the lower steps show the whole graph at a glance. */
+const ZOOM_STEPS = [0.4, 0.6, 0.8, 1, 1.25]
+const DEFAULT_ZOOM_INDEX = ZOOM_STEPS.indexOf(1)
+/** Horizontal padding of the diagram scroll region (p-4 on both sides). */
+const SCROLL_PADDING_PX = 32
 /** Below this width the inspector is stacked under the diagram rather than beside it. */
 const STACKED_QUERY = '(max-width: 1279px)'
 
@@ -124,8 +128,33 @@ function Inspector({ component, provider, view }: { component: Component | null;
 
 export function ArchitecturePanel({ result }: { result: AnalysisResult }) {
   const { graph, view, setView, provider, setProvider, selectedId, select, selectedComponent } = useNyx()
-  const [zoomIndex, setZoomIndex] = useState(2)
+  const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
   const zoom = ZOOM_STEPS[zoomIndex] ?? 1
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [viewportWidth, setViewportWidth] = useState(0)
+  const graphWidth = useMemo(() => (graph ? computeLayout(graph).width : 0), [graph])
+
+  // Track the width of the diagram viewport so "Fit" can pick the largest scale that shows the whole graph.
+  useEffect(() => {
+    const element = scrollRef.current
+    if (!element) return
+    setViewportWidth(element.clientWidth)
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => setViewportWidth(element.clientWidth))
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [graph])
+
+  /** Largest scale at which the whole diagram fits the viewport; the default when the width is unknown. */
+  function fitZoomIndex(): number {
+    const usable = viewportWidth - SCROLL_PADDING_PX
+    if (usable <= 0 || graphWidth <= 0) return DEFAULT_ZOOM_INDEX
+    let best = 0
+    ZOOM_STEPS.forEach((step, index) => {
+      if (graphWidth * step <= usable) best = index
+    })
+    return best
+  }
   const inspectorRef = useRef<HTMLDivElement>(null)
   const lastSelected = useRef<string | null>(null)
 
@@ -209,6 +238,12 @@ export function ArchitecturePanel({ result }: { result: AnalysisResult }) {
                 >
                   +
                 </button>
+                <button type="button" className="nyx-btn-secondary ml-1 px-3 py-1.5 text-xs" onClick={() => setZoomIndex(fitZoomIndex())}>
+                  Fit to width
+                </button>
+                <button type="button" className="nyx-btn-ghost px-2 py-1.5 text-xs" onClick={() => setZoomIndex(DEFAULT_ZOOM_INDEX)}>
+                  Reset
+                </button>
               </div>
             </div>
           }
@@ -222,6 +257,7 @@ export function ArchitecturePanel({ result }: { result: AnalysisResult }) {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Panel className="p-3 sm:p-3" raised>
           <div
+            ref={scrollRef}
             className="nyx-scroll-x max-h-[70vh] rounded-xl bg-obsidian/70 p-4"
             role="region"
             aria-label={`${graph.title} diagram. Scroll horizontally to see all components.`}
