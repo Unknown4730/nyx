@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from app.rules.suitability_rules import RULE_PACK_VERSION
@@ -28,17 +29,17 @@ from app.schemas.common import (
     EngineMode,
 )
 from app.schemas.reports import AiAttempt
-from datetime import datetime, timezone
 from app.services.ai_provider import (
+    SYSTEM_PROMPT,
     CompletionOutcome,
     NullProvider,
-    SYSTEM_PROMPT,
     build_provider,
     build_user_prompt,
 )
 from app.services.architecture_engine import ArchitectureEngine, build_mapping_rows
 from app.services.component_identifier import identify
 from app.services.cost_estimator import CostEstimator
+from app.services.labels import readable
 from app.services.migration_planner import MigrationPlanner
 from app.services.requirement_extractor import RequirementExtractionService
 from app.services.security_analyzer import SecurityAnalyzer
@@ -278,7 +279,7 @@ class AnalysisPipeline:
                     code="LIM-AI",
                     statement=(
                         f"This analysis was produced in deterministic mode "
-                        f"(AI status: {ai_outcome.status.value}). No language model contributed to it."
+                        f"(AI status: {readable(ai_outcome.status)}). No language model contributed to it."
                         + (f" Provider note: {ai_outcome.note}" if ai_outcome.note else "")
                     ),
                 )

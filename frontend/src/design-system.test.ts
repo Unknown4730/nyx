@@ -33,7 +33,7 @@ describe('design system', () => {
     expect(offenders).toEqual([])
   })
 
-  it('defines the Obsidian Glass × Electric Acid palette exactly', () => {
+  it('defines the Obsidian Glass palette (violet, blue, coral, champagne; no acid or lime) exactly', () => {
     const colors = (config.theme?.extend as { colors: Record<string, string> }).colors
     expect(colors).toEqual({
       obsidian: '#080911',

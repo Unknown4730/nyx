@@ -51,7 +51,7 @@ export class NyxApiError extends Error {
 
   /** True for failures where the backend could not be reached or did not answer. */
   get isUnreachable(): boolean {
-    return this.status === 0 || this.status === 408
+    return this.status === 0 || this.status === 408 || this.code === 'api_unreachable'
   }
 
   /** True when the API supplied at least one readable detail (usually validation). */
@@ -88,6 +88,8 @@ async function send(path: string, init: Init = {}): Promise<Response> {
   }
 }
 
+const GATEWAY_STATUSES = new Set([502, 503, 504])
+
 /** Turn a failed response into a `NyxApiError`, reading the envelope when there is one. */
 async function failure(response: Response): Promise<NyxApiError> {
   const contentType = response.headers.get('content-type') ?? ''
@@ -97,6 +99,20 @@ async function failure(response: Response): Promise<NyxApiError> {
   } else {
     // A proxy or gateway error page: keep one short readable line, never HTML.
     const text = (await response.text().catch(() => '')).trim()
+    // The Vite dev proxy answers 500 when the backend is not running, sometimes with a
+    // "Error occurred while trying to proxy…" line and sometimes with an empty body; a gateway
+    // answers 502–504. The NYX backend always answers errors with a JSON envelope, so a non-JSON
+    // 5xx with no readable text means no backend answered. All of these mean the API was not reached.
+    const proxyDown = /error occurred while trying to proxy/i.test(text)
+    const silentGateway = response.status >= 500 && text === ''
+    if (proxyDown || silentGateway || GATEWAY_STATUSES.has(response.status)) {
+      return new NyxApiError({
+        status: response.status,
+        code: 'api_unreachable',
+        message: 'NYX cannot reach its API. Start the backend as described in the README, then retry.',
+        retryable: true,
+      })
+    }
     if (text && !text.startsWith('<')) {
       parsed = { code: 'http_error', message: text.slice(0, 240), details: [], retryable: false }
     }

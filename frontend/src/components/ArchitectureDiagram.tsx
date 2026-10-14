@@ -12,8 +12,12 @@ import { DEPLOYMENT_LABEL, DIAGRAM_COLOUR as C, TIER_ACCENT, TIER_LABELS } from 
 import { humanise } from '@/lib/format'
 import type { ArchitectureGraph, CloudProvider, Component, Connection } from '@/types/analysis'
 
-export const NODE_WIDTH = 236
-export const NODE_HEIGHT = 92
+// Box size and spacing mirror the server layout (backend/app/rules/architecture_layout.py:
+// NODE_WIDTH 264, NODE_HEIGHT 124, GAP_X 132). Keep them in step: the server places nodes
+// on this grid, so a smaller box here leaves the labels cramped and visibly truncated.
+export const NODE_WIDTH = 264
+export const NODE_HEIGHT = 124
+const NODE_GAP_X = 132
 const PADDING = 48
 
 interface Point {
@@ -39,7 +43,7 @@ export function computeLayout(graph: ArchitectureGraph): DiagramLayout {
     const placed = graph.layout?.[component.id]
     raw[component.id] = placed
       ? { x: Number(placed.x), y: Number(placed.y) }
-      : { x: index * (NODE_WIDTH + 48), y: 0 }
+      : { x: index * (NODE_WIDTH + NODE_GAP_X), y: 0 }
   })
   const points = Object.values(raw)
   if (points.length === 0) return { width: 0, height: 0, positions: {} }
@@ -100,6 +104,32 @@ export function edgePath(from: Point, to: Point): { d: string; mid: Point } {
 /** Shorten text for an SVG label; the full text is kept in a `<title>`. */
 export function clip(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`
+}
+
+/**
+ * Break a node label over at most `maxLines` lines of `maxChars` characters, at word
+ * boundaries. Only the last line is shortened, and only when the label still does not fit,
+ * so a long name such as "Managed API surface (routes and throttling)" reads in full.
+ */
+export function wrapLines(text: string, maxChars: number, maxLines: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let current = ''
+  for (const raw of words) {
+    const word = raw.length > maxChars ? clip(raw, maxChars) : raw
+    const candidate = current ? `${current} ${word}` : word
+    if (candidate.length <= maxChars) {
+      current = candidate
+    } else {
+      if (current) lines.push(current)
+      current = word
+    }
+  }
+  if (current) lines.push(current)
+  if (lines.length <= maxLines) return lines
+  const kept = lines.slice(0, maxLines)
+  kept[maxLines - 1] = clip(`${kept[maxLines - 1]} ${lines.slice(maxLines).join(' ')}`, maxChars)
+  return kept
 }
 
 function serviceFor(component: Component, provider: CloudProvider): string | null {
@@ -232,6 +262,7 @@ export function ArchitectureDiagram({
         const service = serviceFor(component, provider)
         const accent = TIER_ACCENT[component.tier] ?? C.textMuted
         const deployment = component.deployment_target ? DEPLOYMENT_LABEL[component.deployment_target] ?? humanise(component.deployment_target) : 'Not stated'
+        const labelLines = wrapLines(component.label, 28, 2)
         const deploymentColour = component.deployment_target === 'serverless_function' ? C.nodeSelected : component.deployment_target === 'managed_service' ? C.connection : C.textSecondary
         return (
           <g
@@ -267,13 +298,23 @@ export function ArchitectureDiagram({
             <text x={18} y={28} fontSize={10.5} fill={C.textSecondary} fontFamily="JetBrains Mono, monospace" letterSpacing="0.1em">
               {clip((TIER_LABELS[component.tier] ?? component.tier).toUpperCase(), 30)}
             </text>
-            <text x={18} y={50} fontSize={15} fontWeight={600} fill={C.text} fontFamily="Inter, system-ui, sans-serif">
-              {clip(component.label, 26)}
+            {labelLines.map((line, lineIndex) => (
+              <text
+                key={lineIndex}
+                x={18}
+                y={50 + lineIndex * 17}
+                fontSize={14}
+                fontWeight={600}
+                fill={C.text}
+                fontFamily="Inter, system-ui, sans-serif"
+              >
+                {line}
+              </text>
+            ))}
+            <text x={18} y={92} fontSize={11.5} fill={deploymentColour} fontFamily="Inter, system-ui, sans-serif">
+              {clip(deployment, 32)}
             </text>
-            <text x={18} y={68} fontSize={11.5} fill={deploymentColour} fontFamily="Inter, system-ui, sans-serif">
-              {clip(deployment, 30)}
-            </text>
-            <text x={18} y={83} fontSize={11} fill={C.textSecondary} fontFamily="Inter, system-ui, sans-serif">
+            <text x={18} y={109} fontSize={11} fill={C.textSecondary} fontFamily="Inter, system-ui, sans-serif">
               {clip(service ? `${service}` : 'No mapping for this provider', 36)}
             </text>
           </g>

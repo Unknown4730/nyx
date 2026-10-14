@@ -17,10 +17,16 @@ explained and marked. It is not a deployment tool and not a pricing tool.
   cloud catalogue lists services and their serverless class; it contains no prices.
   NYX does not provision anything.
 
-Read [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) for how results are produced,
-[`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) for a 10-minute demonstration script, and
-[`docs/audits/NYX_V1_IMPLEMENTATION_AUDIT.md`](docs/audits/NYX_V1_IMPLEMENTATION_AUDIT.md)
-for the release audit, its test evidence and known limitations.
+Documentation:
+
+- [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md): how scores, patterns, costs and reviews are produced.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md): how the system is built, and the HTTP contract.
+- [`docs/TESTING.md`](docs/TESTING.md): every check, what it proves, and the last recorded results.
+- [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md): a 10-minute demonstration script with the expected results.
+- [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md): what V1 does not do, and what was not verified.
+- [`docs/LAB_SUBMISSION_REPORT.md`](docs/LAB_SUBMISSION_REPORT.md): the project report for the lab.
+- [`docs/audits/NYX_COMPLETION_AUDIT.md`](docs/audits/NYX_COMPLETION_AUDIT.md): the completion audit with its evidence and open items.
+- [`docs/audits/NYX_V1_IMPLEMENTATION_AUDIT.md`](docs/audits/NYX_V1_IMPLEMENTATION_AUDIT.md): the earlier release audit, kept for provenance.
 
 ---
 
@@ -126,11 +132,20 @@ npm run typecheck
 npm run lint
 npm test
 npm run build
+
+# With the API on port 8000 running: live smoke test (standard library only)
+cd ..
+.venv/bin/python scripts/api_smoke.py
+
+# With the API and the web client running: browser walkthrough (optional, needs Playwright)
+.venv/bin/python scripts/browser_journey.py --base http://localhost:5173 --out browser-evidence
 ```
 
-On PowerShell use `..\.venv\Scripts\python.exe -m pytest -q` from `backend`, and the
-same `npm` commands from `frontend`. The exact results of the last release run are in
-the audit document.
+On PowerShell use `..\.venv\Scripts\python.exe -m pytest -q` from `backend`, the same `npm`
+commands from `frontend`, and `..\.venv\Scripts\python.exe scripts\api_smoke.py` from the
+repository root. The browser walkthrough needs `python -m pip install playwright` and
+`python -m playwright install chromium` once; set `NYX_CHROMIUM_PATH` to use an existing browser.
+What each check proves, and the last recorded results, are in [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Configuration
 
@@ -193,9 +208,17 @@ frontend/
     types/        analysis.ts (generated from the backend), nyx.ts (hand-written view models)
     test/         Harness, backend-captured fixtures, setup
 docs/
-  METHODOLOGY.md  How scores, patterns, costs and reviews are produced
-  DEMO_GUIDE.md   Demonstration script for the college lab
-  audits/         Implementation audit (initial and final)
+  METHODOLOGY.md        How scores, patterns, costs and reviews are produced
+  ARCHITECTURE.md       System design, request flow and module layout
+  API_CONTRACT.md       HTTP endpoints, error envelope, input limits, export envelope
+  TESTING.md            Every check, what it proves, and how to run it
+  DEMO_RUNBOOK.md       Demonstration script and expected sample results
+  KNOWN_LIMITATIONS.md  Scope boundaries and what was not verified
+  LAB_SUBMISSION_REPORT.md  Project report for the lab
+  audits/               Completion audit and the earlier implementation audit
+scripts/
+  api_smoke.py          Live API smoke test (25 checks, standard library only)
+  browser_journey.py    Chromium walkthrough of the main journey (Playwright, optional)
 ```
 
 Regenerate the TypeScript contract after changing a backend schema:
@@ -229,7 +252,7 @@ logs the reason.
 
 ## Known limitations
 
-See the audit document for the complete list. The main ones:
+See [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) for the complete list. The main ones:
 
 - Scores are rule-based heuristics over the description. Their value depends on how
   specific the description is; the provisional verdict exists so that gaps are visible.
@@ -238,8 +261,10 @@ See the audit document for the complete list. The main ones:
 - The security review is architectural. It is not a penetration test or a compliance
   certification.
 - No infrastructure is created. NYX never calls a cloud provider.
-- The web client is tested with a jsdom workflow suite and a production build; it has
-  not been visually verified in a browser by the project team in this release.
+- The web client is tested with a jsdom workflow suite, a production build, and a Chromium
+  walkthrough (`scripts/browser_journey.py`) on desktop and mobile widths. Only Chromium was used,
+  and mobile was checked by viewport emulation. See [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md).
+- The optional AI path has not been tested against a real endpoint in this release.
 
 ## Licence and attribution
 

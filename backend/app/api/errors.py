@@ -37,9 +37,13 @@ def _validation_details(exc: RequestValidationError | ValidationError) -> list[s
     items = raw() if callable(raw) else []
     details: list[str] = []
     for item in items[:MAX_DETAIL_ITEMS]:
+        kind = str(item.get("type", ""))
+        if kind == "json_invalid":
+            # Starlette reports malformed JSON with a numeric location that means nothing to a user.
+            details.append("body: the request body is not valid JSON.")
+            continue
         location = ".".join(str(part) for part in item.get("loc", []) if part not in {"body"})
         message = str(item.get("msg", "invalid value"))
-        kind = str(item.get("type", ""))
         details.append(f"{location or 'body'}: {message} ({kind})" if location else f"{message} ({kind})")
     if len(items) > MAX_DETAIL_ITEMS:
         details.append(f"…and {len(items) - MAX_DETAIL_ITEMS} further validation issue(s).")

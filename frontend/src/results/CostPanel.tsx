@@ -120,7 +120,9 @@ export function CostPanel({ result }: { result: AnalysisResult }) {
             </thead>
             <tbody>
               {(cost.sensitivity ?? []).map((entry) => (
-                <tr key={entry.name}>
+                // Several scenarios share one driver name (for example 50% and 200% traffic),
+                // so the scenario label is part of the key.
+                <tr key={`${entry.name}|${entry.low_label}`}>
                   <td className={`${TD} text-sm`}>{entry.name}</td>
                   <td className={`${TD} text-xs text-silver`}>{entry.low_label}</td>
                   <td className={`${TD} nyx-metric`}>{percent(entry.conventional_delta_pct / 100, 1)}</td>
@@ -131,7 +133,7 @@ export function CostPanel({ result }: { result: AnalysisResult }) {
           </Table>
         </div>
         {(cost.sensitivity ?? []).map((entry) => (
-          <p key={`${entry.name}-note`} className="mt-3 text-xs text-silver">
+          <p key={`${entry.name}|${entry.low_label}|note`} className="mt-3 text-xs text-silver">
             {entry.name}: {entry.note}
           </p>
         ))}

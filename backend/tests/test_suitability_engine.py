@@ -20,7 +20,6 @@ from app.rules.suitability_rules import (
     BAND_DESCRIPTIONS,
     BANDS,
     COMPONENT_FACTOR_WEIGHTS,
-    COMPONENT_MISSING_WEIGHT_LIMIT,
     MISSING_WEIGHT_LIMIT,
     RULE_PACK_VERSION,
     WORKLOAD_FACTORS,
@@ -313,17 +312,15 @@ def test_malformed_input_is_rejected_rather_than_scored():
 # --------------------------------------------------------------------------
 
 
-def test_evidence_gates_keep_their_documented_values_and_the_component_gate_is_known_to_be_dormant():
+def test_workload_gate_keeps_its_documented_value_and_component_missing_weight_is_bounded():
     assert MISSING_WEIGHT_LIMIT == 0.30
-    assert COMPONENT_MISSING_WEIGHT_LIMIT == 0.34
     assert COMPONENT_FACTOR_WEIGHTS["duration"] == 0.26
 
-    # `duration` is the only component factor that can ever be reported missing, so
-    # the component-level gate cannot currently fire.  That is a documented
-    # limitation, not a bug to be silently "fixed": lowering the threshold would
-    # reclassify published component outcomes and is an unapproved breaking change.
-    # See docs/backend/SUITABILITY_ENGINE.md -> "Known limitations".  This loop
-    # proves the claim instead of asserting it from memory.
+    # `duration` is the only component factor that can ever be reported missing, so the
+    # largest component missing weight is 0.26 and the former component gate (0.34) was
+    # unreachable and has been removed.  This sweep proves the claim rather than
+    # asserting it from memory, and it fails if a new component factor can go missing,
+    # which would be the moment to reconsider a component-level gate.
     enum_fields = {
         name: list(field.annotation.__members__.values())
         for name, field in ComponentTraits.model_fields.items()
@@ -349,4 +346,4 @@ def test_evidence_gates_keep_their_documented_values_and_the_component_gate_is_k
     assert evaluated == 240, "the trait space must be swept exhaustively"
     assert missing_ids == {"duration"}
     assert worst == COMPONENT_FACTOR_WEIGHTS["duration"]
-    assert worst < COMPONENT_MISSING_WEIGHT_LIMIT, "the component gate is documented as dormant"
+    assert worst < MISSING_WEIGHT_LIMIT, "a component can never by itself reach the workload evidence limit"

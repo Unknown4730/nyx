@@ -685,7 +685,7 @@
       "name": "Online Examination Platform",
       "tagline": "Timed assessments for large cohorts with spiky start times.",
       "icon": "Timer",
-      "summary": "A examination platform where students sit timed papers simultaneously, creating sharp bursts at scheduled start times.",
+      "summary": "An examination platform where students sit timed papers simultaneously, creating sharp bursts at scheduled start times.",
       "highlights": [
         "Bursty scheduled sessions",
         "Strict integrity and availability needs",

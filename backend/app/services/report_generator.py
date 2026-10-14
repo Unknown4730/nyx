@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 from app.schemas.analysis import AnalysisResult
 from app.schemas.common import CloudProvider
+from app.services.labels import readable
 
 PROVIDER_LABEL = {
     CloudProvider.AWS: "Amazon Web Services",
@@ -24,6 +25,18 @@ def _c(value: object) -> str:
     """
     text = " ".join(str(value).split())
     return text.replace("\\", "\\\\").replace("|", "\\|")
+
+
+
+def export_filename(result: AnalysisResult, extension: str) -> str:
+    """One filename rule for every export: nyx-report-<slug of the analysis title>.<extension>.
+
+    Saved projects and unsaved analyses use the same rule, so a download is named the same
+    way wherever it came from.
+    """
+    safe = "".join(character if character.isalnum() or character in "-_" else "-" for character in result.title)
+    stem = safe[:48].strip("-").lower() or "analysis"
+    return f"nyx-report-{stem}.{extension}"
 
 
 def to_json(result: AnalysisResult, *, indent: int = 2) -> str:
@@ -59,7 +72,7 @@ def to_markdown(result: AnalysisResult) -> str:
 
     add("## 2. Extracted workload characteristics")
     add("")
-    add(f"- Classification: **{result.workload.classification.replace('_', ' ')}**")
+    add(f"- Classification: **{readable(result.workload.classification)}**")
     add(f"- {result.workload.headline}")
     add(f"- Request shape: {result.workload.request_shape}")
     add(f"- Data shape: {result.workload.data_shape}")
@@ -70,7 +83,7 @@ def to_markdown(result: AnalysisResult) -> str:
     add("")
     if result.assumptions:
         for item in result.assumptions:
-            add(f"- **{item.id}** ({item.basis.value.replace('_', ' ')}, impact {item.impact}): {item.statement}")
+            add(f"- **{item.id}** ({readable(item.basis.value)}, impact {item.impact}): {item.statement}")
     else:
         add("- No assumptions were needed; every deciding input was stated explicitly.")
     add("")
@@ -88,14 +101,14 @@ def to_markdown(result: AnalysisResult) -> str:
     add("")
     add(result.suitability.rationale)
     add("")
-    add(f"Recommended pattern: **{result.suitability.recommended_pattern.value.replace('_', ' ')}**")
+    add(f"Recommended pattern: **{readable(result.suitability.recommended_pattern.value)}**")
     add("")
     add("| Factor | Weight | Impact | Contribution | Basis | Evidence |")
     add("| --- | --- | --- | --- | --- | --- |")
     for factor in result.suitability.factors:
         evidence = "; ".join(factor.evidence) or "—"
         add(f"| {_c(factor.name)} | {factor.weight:.2f} | {factor.impact:+.2f} | {factor.contribution:+.3f} | "
-            f"{factor.basis} | {evidence} |")
+            f"{readable(factor.basis)} | {evidence} |")
     add("")
     add(f"Method: {result.suitability.methodology.formula}")
     add("")
@@ -106,7 +119,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| --- | --- | --- | --- | --- |")
         for component in result.suitability.components:
             add(f"| {_c(component.component_label)} | {component.score:.0f} | "
-                f"{component.outcome.value.replace('_', ' ')} | `{component.recommendation.value}` | "
+                f"{readable(component.outcome.value)} | {readable(component.recommendation)} | "
                 f"{component.recommendation_reason} |")
         add("")
     for caveat in result.suitability.caveats:
@@ -123,7 +136,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| Component | Type | Deployment | Description |")
         add("| --- | --- | --- | --- |")
         for component in graph.components:
-            add(f"| {_c(component.label)} | `{component.type.value}` | `{component.deployment_target.value}` | "
+            add(f"| {_c(component.label)} | {readable(component.type)} | {readable(component.deployment_target)} | "
                 f"{component.description} |")
         add("")
         add("Connections:")
@@ -131,7 +144,7 @@ def to_markdown(result: AnalysisResult) -> str:
         for connection in graph.connections:
             boundary = " *(crosses trust boundary)*" if connection.crosses_trust_boundary else ""
             label = f" — {connection.label}" if connection.label else ""
-            add(f"- `{connection.source}` → `{connection.target}` ({connection.kind.value}){label}{boundary}")
+            add(f"- `{connection.source}` → `{connection.target}` ({readable(connection.kind)}){label}{boundary}")
         add("")
         if graph.trust_boundaries:
             add("Trust boundaries: " + "; ".join(
@@ -177,7 +190,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| ID | Severity | Certainty | Finding | Components |")
         add("| --- | --- | --- | --- | --- |")
         for finding in result.security.findings:
-            add(f"| {_c(finding.id)} | {finding.severity.value} | {finding.certainty.value} | {_c(finding.title)} | "
+            add(f"| {_c(finding.id)} | {finding.severity.value} | {readable(finding.certainty)} | {_c(finding.title)} | "
                 f"{', '.join(finding.component_ids) or '—'} |")
         add("")
         for finding in result.security.findings:
@@ -196,7 +209,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| Severity | Certainty | Finding | Evidence |")
         add("| --- | --- | --- | --- |")
         for finding in result.security.baseline_findings:
-            add(f"| {finding.severity.value} | {finding.certainty.value} | {_c(finding.title)} | "
+            add(f"| {finding.severity.value} | {readable(finding.certainty)} | {_c(finding.title)} | "
                 f"{'; '.join(finding.evidence)} |")
         add("")
     if result.security.verification_gaps:
@@ -245,7 +258,7 @@ def to_markdown(result: AnalysisResult) -> str:
         add("| --- | --- | --- | --- | --- | --- |")
         for item in scenario.line_items:
             add(f"| {_c(item.label)} | {item.quantity:g} | {_c(item.unit)} | {item.ricu:g} | {item.category.value} | "
-                f"{item.basis} |")
+                f"{readable(item.basis)} |")
         add("")
     if result.cost.sensitivity:
         add("### Sensitivity")
@@ -270,7 +283,7 @@ def to_markdown(result: AnalysisResult) -> str:
 
     add("## 9. Migration assessment")
     add("")
-    add(f"Overall complexity: **{result.migration.overall_complexity.value.replace('_', ' ')}** "
+    add(f"Overall complexity: **{readable(result.migration.overall_complexity.value)}** "
         f"(weighted {result.migration.complexity_score:.0f}/100).")
     add("")
     add("### Drivers")
@@ -352,17 +365,17 @@ def to_markdown(result: AnalysisResult) -> str:
 def _requirement_rows(result: AnalysisResult) -> list[tuple[str, str, str]]:
     requirements = result.application
     rows: list[tuple[str, str, str]] = [
-        ("Application type", requirements.application_type.value.replace("_", " "),
+        ("Application type", readable(requirements.application_type.value),
          _basis(result, "application_type")),
         ("Expected users", f"{requirements.expected_users:,}" if requirements.expected_users else "not stated",
          _basis(result, "expected_users")),
-        ("Traffic pattern", (requirements.traffic_pattern.value.replace("_", " ") if requirements.traffic_pattern
+        ("Traffic pattern", (readable(requirements.traffic_pattern.value) if requirements.traffic_pattern
                              else "not stated"), _basis(result, "traffic_pattern")),
-        ("Data storage", ", ".join(kind.value for kind in requirements.data_storage) or "not stated",
+        ("Data storage", ", ".join(readable(kind) for kind in requirements.data_storage) or "not stated",
          _basis(result, "data_storage")),
-        ("Availability", (requirements.availability.value.replace("_", " ") if requirements.availability
+        ("Availability", (readable(requirements.availability.value) if requirements.availability
                           else "not stated"), _basis(result, "availability")),
-        ("Budget preference", (requirements.budget.value.replace("_", " ") if requirements.budget else "not stated"),
+        ("Budget preference", (readable(requirements.budget.value) if requirements.budget else "not stated"),
          _basis(result, "budget")),
         ("Preferred provider", PROVIDER_LABEL.get(requirements.preferred_provider or CloudProvider.UNDECIDED),
          _basis(result, "preferred_provider")),
@@ -376,7 +389,7 @@ def _basis(result: AnalysisResult, field_name: str) -> str:
     entry = result.application.provenance.get(field_name)
     if entry is None:
         return "not stated"
-    return entry.basis.value.replace("_", " ")
+    return readable(entry.basis.value)
 
 
 def _mode(result: AnalysisResult) -> str:
